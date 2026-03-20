@@ -1,6 +1,6 @@
 {
-  "short_name": "Calm",
-  "name": "Calm Journal",
+  "short_name": "Calma",
+  "name": "Calma Calma",
   "description": "Your personal AI-powered journaling companion",
   "icons": [
     {
@@ -18,7 +18,7 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#1a1a2e",
-  "background_color": "#1a1a2e",
+  "theme_color": "#0c0804",
+  "background_color": "#0c0804",
   "orientation": "portrait"
 }

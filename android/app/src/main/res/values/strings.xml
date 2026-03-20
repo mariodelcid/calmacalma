@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Calma Calma</string>
+    <string name="title_activity_main">Calma Calma</string>
+    <string name="package_name">com.mariodelcid.calmacalma</string>
+    <string name="custom_url_scheme">com.mariodelcid.calmacalma</string>
+</resources>

@@ -126,7 +126,7 @@ function Onboarding({ onComplete }) {
   const stepProgress = step / 4;
 
   return (
-    <div style={{ height:"844px", display:"flex", flexDirection:"column", background:t.gradient, overflow:"hidden", transition:"background 0.6s" }}>
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, overflow:"hidden", transition:"background 0.6s" }}>
       {/* Progress bar */}
       <div style={{ height:3, background:`${t.border}44`, position:"absolute", top:0, left:0, right:0 }}>
         <div style={{ height:"100%", width:`${stepProgress*100}%`, background:t.accent, transition:"width 0.5s", boxShadow:`0 0 8px ${t.accent}` }} />
@@ -196,7 +196,7 @@ function Onboarding({ onComplete }) {
 
       {/* STEP 3 — Choose Lens */}
       {step===3 && (
-        <div className="fade-in" style={{ height:"844px", display:"flex", flexDirection:"column", padding:"60px 20px 0" }}>
+        <div className="fade-in" style={{ height:"100%", display:"flex", flexDirection:"column", padding:"60px 20px 0" }}>
           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6, flexShrink:0 }}>Step 3 of 4</div>
           <div style={{ fontFamily:"'Lora',serif", fontSize:26, color:t.text, marginBottom:4, flexShrink:0 }}>Choose your advisor</div>
           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginBottom:16, flexShrink:0 }}>Your writing will be analyzed through this lens. Change it anytime per entry.</div>
@@ -280,7 +280,7 @@ function PinScreen({ savedPin, onUnlock, t }) {
   };
 
   return (
-    <div style={{ height:"844px", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:t.gradient }}>
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:t.gradient }}>
       <div style={{ marginBottom:48, textAlign:"center" }}>
         <div style={{ fontSize:52, marginBottom:12, animation:"breathe 3s ease-in-out infinite" }}>🔥</div>
         <div style={{ fontFamily:"'Lora',serif", fontSize:32, fontWeight:600, color:t.text }}>Ember</div>
@@ -407,7 +407,7 @@ function HomeScreen({ t, char, activeLens, entries, onEntry, onCapture, onSettin
   const [showWins, setShowWins] = useState(false);
   const heatDays = Array.from({length:35},(_,i)=>({ has:[2,5,7,12,17,19,22,24,30,32].includes(i), today:i===34 }));
   return (
-    <div style={{ height:"844px", display:"flex", flexDirection:"column", background:t.gradient, overflow:"hidden" }}>
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, overflow:"hidden" }}>
       <div style={{ padding:"52px 24px 12px", display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
         <div>
           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
@@ -502,7 +502,7 @@ function CaptureScreen({ t, activeLens, onBack, onDone, onSaveEntry }) {
   };
 
   return (
-    <div style={{ height:"844px", display:"flex", flexDirection:"column", background:"#000" }}>
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:"#000" }}>
       <div style={{ padding:"52px 20px 14px", display:"flex", alignItems:"center", gap:10, position:"absolute", top:0, left:0, right:0, zIndex:10, background:"#00000077" }}>
         <button className="ember-btn" onClick={onBack} style={{ background:"#ffffff22", border:"none", borderRadius:20, padding:"6px 12px", color:"#fff", fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>← Back</button>
         <div style={{ fontFamily:"'Lora',serif", fontSize:15, color:"#fff" }}>Capture Entry</div>
@@ -568,7 +568,7 @@ function EntryScreen({ t, entry, activeLens, char, onBack }) {
   };
 
   return (
-    <div style={{ height:"844px", display:"flex", flexDirection:"column", background:t.gradient, position:"relative", overflow:"hidden" }}>
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, position:"relative", overflow:"hidden" }}>
       {/* Ritual overlay */}
       {showRitual && (
         <div style={{ position:"absolute", inset:0, zIndex:50, background:"#00000099", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
@@ -685,7 +685,7 @@ function SettingsScreen({ t, char, activeLens, theme, setTheme, character, setCh
   const [toggles, setToggles] = useState({ faceId:true, decoy:false, selfDestruct:false, cloud:false });
 
   return (
-    <div style={{ height:"844px", display:"flex", flexDirection:"column", background:t.gradient }}>
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient }}>
       <div style={{ padding:"52px 20px 12px", display:"flex", alignItems:"center", gap:12 }}>
         <button className="ember-btn" onClick={onBack} style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:20, padding:"6px 12px", color:t.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>← Back</button>
         <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text }}>Settings</div>
@@ -1032,7 +1032,7 @@ function ShopScreen({ t, cart, onAddToCart, onShowCart, onBack }) {
   const filtered = activeCategory==="all" ? SHOP_PRODUCTS : SHOP_PRODUCTS.filter(p=>p.category===activeCategory);
 
   return (
-    <div style={{ height:"844px", display:"flex", flexDirection:"column", background:t.gradient, position:"relative", overflow:"hidden" }}>
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, position:"relative", overflow:"hidden" }}>
       {selectedProduct && (
         <ProductDetail product={selectedProduct} t={t} onClose={()=>setSelectedProduct(null)} onAddToCart={onAddToCart} />
       )}
@@ -1309,7 +1309,7 @@ export default function Ember() {
 
   if (authLoading) {
     return (
-      <div style={{ minHeight:"100vh", background:"#030303", display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ width:"100%", height:"100vh", background:"#0c0804", display:"flex", alignItems:"center", justifyContent:"center" }}>
         <div style={{ fontSize: 48 }}>🔥</div>
       </div>
     );
@@ -1317,20 +1317,20 @@ export default function Ember() {
 
   if (!user) {
     return (
-      <div style={{ minHeight:"100vh", background:"#030303", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px 10px" }}>
-        <div style={{ width:390, height:844, background:t.gradient, borderRadius:44, overflow:"hidden", position:"relative", boxShadow:`0 0 0 1px ${t.border}, 0 0 80px ${t.accent}22, 0 60px 120px #000000bb` }}>
-          <AuthScreen onAuthSuccess={handleAuthSuccess} />
-        </div>
+      <div style={{ width:"100%", height:"100vh", background:t.gradient, overflow:"hidden", position:"relative" }}>
+        <AuthScreen onAuthSuccess={handleAuthSuccess} />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight:"100vh", background:"#030303", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px 10px" }}>
+    <div style={{ width:"100%", height:"100vh", background:t.gradient, position:"relative", overflow:"hidden" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        .ember-btn{cursor:pointer;border:none;outline:none;transition:transform 0.13s,box-shadow 0.13s;}
+        html,body,#root{height:100%;width:100%;overflow:hidden;background:#0c0804;}
+        body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}
+        .ember-btn{cursor:pointer;border:none;outline:none;transition:transform 0.13s,box-shadow 0.13s;-webkit-tap-highlight-color:transparent;}
         .ember-btn:active:not(:disabled){transform:scale(0.95);}
         .ember-btn:disabled{cursor:default;opacity:0.5;}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
@@ -1347,7 +1347,7 @@ export default function Ember() {
         ::-webkit-scrollbar{width:0;height:0;}
       `}</style>
 
-      <div style={{ width:390, height:844, background:t.gradient, borderRadius:44, overflow:"hidden", position:"relative", boxShadow:`0 0 0 1px ${t.border}, 0 0 80px ${t.accent}22, 0 60px 120px #000000bb`, transition:"background 0.6s" }}>
+      <div style={{ width:"100%", height:"100%", background:t.gradient, overflow:"hidden", position:"relative", transition:"background 0.6s" }}>
 
         {/* Cart drawer overlay */}
         {showCart && <CartDrawer cart={cart} t={t} onClose={()=>setShowCart(false)} onRemove={removeFromCart} onCheckout={handleCheckout} />}

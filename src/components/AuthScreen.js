@@ -8,6 +8,8 @@ export default function AuthScreen({ onAuthSuccess }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,7 +36,12 @@ export default function AuthScreen({ onAuthSuccess }) {
     if (result.error) {
       setError(result.error);
     } else {
-      onAuthSuccess(result.user);
+      if (mode === 'signup') {
+        setConfirmationEmail(email);
+        setShowConfirmation(true);
+      } else {
+        onAuthSuccess(result.user);
+      }
     }
   };
 
@@ -49,6 +56,78 @@ export default function AuthScreen({ onAuthSuccess }) {
     border: '#3d2a10',
     gradient: 'radial-gradient(ellipse at 50% 110%, #3d1a00 0%, #0c0804 65%)',
   };
+
+  if (showConfirmation) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        background: t.gradient,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 30px'
+      }}>
+        <div style={{ textAlign: 'center', maxWidth: 320 }}>
+          <div style={{ fontSize: 64, marginBottom: 24 }}>✅</div>
+          <h1 style={{
+            fontFamily: "'Lora', serif",
+            fontSize: 28,
+            color: t.text,
+            marginBottom: 16
+          }}>
+            Check Your Email
+          </h1>
+          <p style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 14,
+            color: t.muted,
+            lineHeight: 1.6,
+            marginBottom: 24
+          }}>
+            We sent a confirmation link to <strong style={{ color: t.text }}>{confirmationEmail}</strong>
+          </p>
+          <p style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 13,
+            color: t.muted,
+            lineHeight: 1.6,
+            marginBottom: 32,
+            background: t.card,
+            borderRadius: 12,
+            padding: 16,
+            border: `1px solid ${t.border}`
+          }}>
+            Click the link to confirm your account before signing in. It may take a minute to arrive.
+          </p>
+          <button
+            onClick={() => {
+              setShowConfirmation(false);
+              setMode('signin');
+              setEmail('');
+              setPassword('');
+            }}
+            style={{
+              width: '100%',
+              padding: '12px',
+              background: t.accent,
+              color: t.bg,
+              border: 'none',
+              borderRadius: 8,
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            Back to Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{

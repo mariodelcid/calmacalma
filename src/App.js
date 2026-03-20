@@ -24,6 +24,11 @@ const CHARACTERS = [
   { id:"rex",     name:"Rex",     desc:"T-Rex in a suit",          bg:"#dcfce7", face:"🦕", mood:{ neutral:"🦕", calm:"💼", excited:"📈", empathetic:"🤝", encouraging:"💪", thinking:"🧠", celebrating:"🏆", sleepy:"😴" } },
   { id:"tanuki",  name:"Tanuki",  desc:"Monk raccoon, wise",       bg:"#fce7f3", face:"🦝", mood:{ neutral:"🦝", calm:"🍃", excited:"🍀", empathetic:"🌸", encouraging:"☯️", thinking:"📿", celebrating:"🎍", sleepy:"🌙" } },
   { id:"frida",   name:"Frida",   desc:"Bold folk art spirit",     bg:"#fef9c3", face:"🌺", mood:{ neutral:"🌺", calm:"🎨", excited:"🌻", empathetic:"🌹", encouraging:"🦋", thinking:"✍️", celebrating:"🎊", sleepy:"🌜" } },
+  { id:"abuela",  name:"Abuela",  desc:"Wise old woman, warm & knowing", bg:"#e8d5c4", face:"👵", mood:{ neutral:"👵", calm:"🧶", excited:"🤗", empathetic:"💝", encouraging:"🙏", thinking:"🔮", celebrating:"🎂", sleepy:"😴" } },
+  { id:"abuelo",  name:"Abuelo",  desc:"Old man, steady & patient", bg:"#d4c5a9", face:"👴", mood:{ neutral:"👴", calm:"📖", excited:"🎣", empathetic:"🤝", encouraging:"💪", thinking:"🧐", celebrating:"🥂", sleepy:"😴" } },
+  { id:"exec",    name:"The Boss", desc:"Executive, sharp & direct", bg:"#c8d6e5", face:"👔", mood:{ neutral:"👔", calm:"📊", excited:"📈", empathetic:"🤝", encouraging:"💼", thinking:"🧠", celebrating:"🏆", sleepy:"😴" } },
+  { id:"crude",   name:"Raw",     desc:"Crude companion, brutally honest", bg:"#d4d4d4", face:"🗿", mood:{ neutral:"🗿", calm:"😐", excited:"🤘", empathetic:"😤", encouraging:"💥", thinking:"🤔", celebrating:"🍺", sleepy:"😴" } },
+  { id:"shifu",   name:"Shifu",   desc:"Chinese elder, ancient wisdom", bg:"#f0e6d3", face:"🧓", mood:{ neutral:"🧓", calm:"🍵", excited:"🐉", empathetic:"☯️", encouraging:"🎋", thinking:"📿", celebrating:"🎆", sleepy:"🌙" } },
 ];
 
 const LENSES = [
@@ -56,6 +61,15 @@ const LENS_PROMPTS = {
   none:         `You are an organizational assistant. Extract key themes, action items, and mood from this journal entry in 2 sentences. No personal commentary.`,
 };
 
+const DESTRUCTION_RITUALS = [
+  { id:"tears", name:"Dissolved in Tears", icon:"😢", desc:"Let sorrow wash it away" },
+  { id:"blood", name:"Dissolved in Blood", icon:"🩸", desc:"Sacrifice and release" },
+  { id:"wash", name:"Wash Away Water", icon:"🌊", desc:"Cleansed by flowing water" },
+  { id:"regular", name:"Regular Water", icon:"💧", desc:"Simple, pure dissolution" },
+  { id:"eternity", name:"For Eternity Water", icon:"♾️", desc:"Gone forever, by choice" },
+  { id:"never", name:"Never Again Water", icon:"🚫", desc:"Erased. No return." },
+];
+
 const SAMPLE_ENTRIES = [
   { id:1, date:"March 17, 2026", dateShort:"Mar 17", day:"Today",    mood:"reflective", lens:"business",   released:true,  tags:["work","sales","strategy"],  text:`Rough day at the kiosk. Sales were slow — maybe 40% of usual. I kept second-guessing my menu pricing. But I stayed calm and reorganized the prep station. Small win.\n\nNeed to think about the Tuesday slow slump and maybe try a daily special. What if I did a "Chef's Taco" at a lower price point to pull in foot traffic from the supermarket floor?`, preview:"Rough day at the kiosk. Sales were slow but I stayed calm..." },
   { id:2, date:"March 15, 2026", dateShort:"Mar 15", day:"Saturday", mood:"frustrated", lens:"adhd",       released:false, tags:["focus","adhd","self"],       text:`Couldn't focus at all today. Started 5 things. Finished zero. I feel like something is wrong with me. Everybody else seems to just... do things.\n\nI sat staring at the prep list for 20 minutes and then rearranged the spice rack instead. At least it looks good now. But I'm frustrated with myself again.`, preview:"Couldn't focus at all. Started 5 things. Finished zero. I feel..." },
@@ -64,6 +78,13 @@ const SAMPLE_ENTRIES = [
 ];
 
 const MOOD_COLORS = { reflective:"#6366f1", frustrated:"#ef4444", grateful:"#10b981", heavy:"#94a3b8", calm:"#22c55e" };
+
+const QUADRANTS = [
+  { id:"universe", icon:"🌌", name:"Universe Instructions", count:0 },
+  { id:"confidant", icon:"🤫", name:"My Confidant", count:0 },
+  { id:"ideas", icon:"💡", name:"My Ideas", count:0 },
+  { id:"notes", icon:"📝", name:"Notes", count:0 },
+];
 
 // ─────────────────────────────────────────
 // SMALL COMPONENTS
@@ -150,11 +171,11 @@ function Onboarding({ onComplete }) {
 
       {/* STEP 1 — Choose World */}
       {step===1 && (
-        <div className="fade-in" style={{ flex:1, display:"flex", flexDirection:"column", padding:"60px 20px 20px" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 1 of 4</div>
-          <div style={{ fontFamily:"'Lora',serif", fontSize:26, color:t.text, marginBottom:6 }}>Choose your world</div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginBottom:20 }}>This wraps every entry in a scene that's yours.</div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, flex:1, overflowY:"auto" }}>
+        <div className="fade-in" style={{ flex:1, display:"flex", flexDirection:"column", padding:"60px 20px 20px", overflow:"hidden" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6, flexShrink:0 }}>Step 1 of 4</div>
+          <div style={{ fontFamily:"'Lora',serif", fontSize:26, color:t.text, marginBottom:6, flexShrink:0 }}>Choose your world</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginBottom:20, flexShrink:0 }}>This wraps every entry in a scene that's yours.</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, flex:1, overflowY:"auto", minHeight:0 }}>
             {Object.entries(THEMES).map(([key, th]) => (
               <button key={key} className="ember-btn" onClick={()=>setTheme(key)}
                 style={{ background:th.bg, borderRadius:20, padding:18, border:`2px solid ${theme===key?th.accent:th.border}`, textAlign:"left", boxShadow:theme===key?`0 0 24px ${th.accent}55`:"none", transition:"all 0.3s" }}>
@@ -167,17 +188,17 @@ function Onboarding({ onComplete }) {
               </button>
             ))}
           </div>
-          <button className="ember-btn" onClick={()=>setStep(2)} style={{ marginTop:16, background:t.accent, color:"#0c0804", fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:15, padding:"14px 0", borderRadius:14, width:"100%" }}>Continue →</button>
+          <button className="ember-btn" onClick={()=>setStep(2)} style={{ marginTop:16, background:t.accent, color:"#0c0804", fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:15, padding:"14px 0", borderRadius:14, width:"100%", flexShrink:0 }}>Continue →</button>
         </div>
       )}
 
       {/* STEP 2 — Choose Companion */}
       {step===2 && (
-        <div className="fade-in" style={{ flex:1, display:"flex", flexDirection:"column", padding:"60px 20px 20px" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 2 of 4</div>
-          <div style={{ fontFamily:"'Lora',serif", fontSize:26, color:t.text, marginBottom:6 }}>Choose your companion</div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginBottom:20 }}>They'll sit quietly with you. React to your writing. Celebrate your wins.</div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, flex:1, overflowY:"auto" }}>
+        <div className="fade-in" style={{ flex:1, display:"flex", flexDirection:"column", padding:"60px 20px 20px", overflow:"hidden" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6, flexShrink:0 }}>Step 2 of 4</div>
+          <div style={{ fontFamily:"'Lora',serif", fontSize:26, color:t.text, marginBottom:6, flexShrink:0 }}>Choose your companion</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginBottom:20, flexShrink:0 }}>They'll sit quietly with you. React to your writing. Celebrate your wins.</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, flex:1, overflowY:"auto", minHeight:0 }}>
             {CHARACTERS.map(c => (
               <button key={c.id} className="ember-btn" onClick={()=>setCharacter(c.id)}
                 style={{ background:t.card, borderRadius:20, padding:16, border:`2px solid ${character===c.id?t.accent:t.border}`, display:"flex", flexDirection:"column", alignItems:"center", gap:8, boxShadow:character===c.id?`0 0 20px ${t.accent}55`:"none", transition:"all 0.3s" }}>
@@ -188,7 +209,7 @@ function Onboarding({ onComplete }) {
               </button>
             ))}
           </div>
-          <button className="ember-btn" onClick={()=>character&&setStep(3)} style={{ marginTop:16, background:character?t.accent:`${t.border}88`, color:character?"#0c0804":t.muted, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:15, padding:"14px 0", borderRadius:14, width:"100%" }}>
+          <button className="ember-btn" onClick={()=>character&&setStep(3)} style={{ marginTop:16, background:character?t.accent:`${t.border}88`, color:character?"#0c0804":t.muted, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:15, padding:"14px 0", borderRadius:14, width:"100%", flexShrink:0 }}>
             {character?"Continue →":"Pick a companion first"}
           </button>
         </div>
@@ -196,7 +217,7 @@ function Onboarding({ onComplete }) {
 
       {/* STEP 3 — Choose Lens */}
       {step===3 && (
-        <div className="fade-in" style={{ height:"100%", display:"flex", flexDirection:"column", padding:"60px 20px 0" }}>
+        <div className="fade-in" style={{ flex:1, display:"flex", flexDirection:"column", padding:"60px 20px 0", overflow:"hidden" }}>
           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6, flexShrink:0 }}>Step 3 of 4</div>
           <div style={{ fontFamily:"'Lora',serif", fontSize:26, color:t.text, marginBottom:4, flexShrink:0 }}>Choose your advisor</div>
           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginBottom:16, flexShrink:0 }}>Your writing will be analyzed through this lens. Change it anytime per entry.</div>
@@ -444,6 +465,17 @@ function HomeScreen({ t, char, activeLens, entries, onEntry, onCapture, onSettin
         </div>
       )}
 
+      {/* Four Quadrants Section */}
+      <div style={{ padding:"0 24px 14px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+        {QUADRANTS.map(q=>(
+          <div key={q.id} className="ember-btn" onClick={()=>{}} style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:14, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", gap:8 }}>
+            <div style={{ fontSize:28 }}>{q.icon}</div>
+            <div style={{ fontFamily:"'Lora',serif", fontSize:12, color:t.text }}>{q.name}</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.muted }}>0 items</div>
+          </div>
+        ))}
+      </div>
+
       <div style={{ flex:1, overflowY:"auto", padding:"0 24px" }}>
         {entries.map(entry=>{
           const el = LENSES.find(l=>l.id===entry.lens);
@@ -559,10 +591,14 @@ function EntryScreen({ t, entry, activeLens, char, onBack }) {
   const [entryLens, setEntryLens] = useState(LENSES.find(l=>l.id===entry.lens)||activeLens);
   const [showLensPicker, setShowLensPicker] = useState(false);
   const [showRitual, setShowRitual] = useState(false);
+  const [showRitualPicker, setShowRitualPicker] = useState(false);
+  const [selectedRitual, setSelectedRitual] = useState(null);
   const [released, setReleased] = useState(entry.released);
   const [particles] = useState(()=>Array.from({length:20},(_,i)=>({ id:i, x:Math.random()*100, delay:Math.random()*0.8, size:5+Math.random()*9 })));
 
-  const triggerRitual = () => {
+  const triggerRitual = (ritual) => {
+    setSelectedRitual(ritual);
+    setShowRitualPicker(false);
     setShowRitual(true);
     setTimeout(()=>{ setShowRitual(false); setReleased(true); }, 2600);
   };
@@ -577,8 +613,8 @@ function EntryScreen({ t, entry, activeLens, char, onBack }) {
           ))}
           <div style={{ textAlign:"center", zIndex:1 }}>
             <div style={{ fontSize:72, animation:"ritual 2.6s ease-in forwards" }}>🔥</div>
-            <div style={{ fontFamily:"'Lora',serif", fontSize:22, color:t.text, marginTop:16 }}>Letting it go...</div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginTop:8 }}>The paper burns. The meaning stays.</div>
+            <div style={{ fontFamily:"'Lora',serif", fontSize:22, color:t.text, marginTop:16 }}>{selectedRitual ? selectedRitual.name : "Letting it go..."}</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginTop:8 }}>The paper dissolves. The meaning stays.</div>
           </div>
         </div>
       )}
@@ -661,14 +697,30 @@ function EntryScreen({ t, entry, activeLens, char, onBack }) {
       )}
 
       {/* Bottom actions */}
-      <div style={{ padding:"10px 24px 36px", display:"flex", gap:10 }}>
+      <div style={{ padding:"10px 24px 36px", display:"flex", gap:10, position:"relative" }}>
         {!released ? (
-          <button className="ember-btn" onClick={triggerRitual} style={{ flex:1, background:`${t.accent}22`, border:`1px solid ${t.accent}66`, borderRadius:12, padding:"12px 0", color:t.accent, fontFamily:"'DM Sans',sans-serif", fontSize:13 }}>
-            🔥 Let it go
-          </button>
+          <>
+            <button className="ember-btn" onClick={()=>setShowRitualPicker(v=>!v)} style={{ flex:1, background:`${t.accent}22`, border:`1px solid ${t.accent}66`, borderRadius:12, padding:"12px 0", color:t.accent, fontFamily:"'DM Sans',sans-serif", fontSize:13 }}>
+              🔥 Release ritual...
+            </button>
+            {showRitualPicker && (
+              <div className="fade-in" style={{ position:"absolute", bottom:60, left:24, right:24, background:t.surface, border:`1px solid ${t.border}`, borderRadius:16, padding:8, boxShadow:`0 8px 40px #00000088`, zIndex:40 }}>
+                {DESTRUCTION_RITUALS.map(r=>(
+                  <button key={r.id} className="ember-btn" onClick={()=>triggerRitual(r)}
+                    style={{ width:"100%", background:"transparent", borderRadius:10, padding:"12px 14px", display:"flex", alignItems:"center", gap:12, marginBottom:4, border:"none", textAlign:"left", color:t.text, cursor:"pointer", transition:"background 0.2s" }}>
+                    <span style={{ fontSize:20 }}>{r.icon}</span>
+                    <div>
+                      <div style={{ fontFamily:"'Lora',serif", fontSize:13, color:t.text }}>{r.name}</div>
+                      <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted }}>{r.desc}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         ) : (
           <div style={{ flex:1, background:`${t.border}44`, borderRadius:12, padding:"12px 0", color:t.muted, fontFamily:"'DM Sans',sans-serif", fontSize:13, textAlign:"center" }}>
-            🔥 Released
+            🔥 {selectedRitual ? selectedRitual.name : "Released"}
           </div>
         )}
         <button className="ember-btn" style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:"12px 16px", color:t.muted, fontFamily:"'DM Sans',sans-serif", fontSize:13 }}>↗ Export</button>
@@ -812,60 +864,65 @@ function SettingsScreen({ t, char, activeLens, theme, setTheme, character, setCh
 // ─────────────────────────────────────────
 const SHOP_PRODUCTS = [
   {
-    id:"jar", category:"hardware", badge:"⭐ Best Seller",
-    name:"Ember Dissolve Jar", emoji:"🫙",
-    tagline:"The ritual vessel. Indoor. Silent. Elegant.",
-    desc:"Hand-finished glass apothecary jar with weighted matte lid, fill-line etching, and borosilicate stirring rod. Fits one folded journal page. Matches your app theme.",
-    price:54.99, comparePrice:null,
-    variants:[{label:"Ember Black",color:"#1a1008"},{label:"Sakura Rose",color:"#4a0a30"},{label:"Zen Slate",color:"#101414"}],
-    includes:["1× Glass dissolve jar","1× Glass stirring rod","30× Ember dissolving sheets","Safety card"],
-    recurring:false,
-    url:"https://www.amazon.com/s?k=glass+apothecary+jar+wide+mouth",
+    id:"notebook", category:"hardware", badge:"📓 Essential",
+    name:"Calma Calma Notebook", emoji:"📓",
+    tagline:"Your sacred writing space.",
+    desc:"Premium hardcover journal with lined dissolving paper pages. 120 pages of PVA-based dissolving paper bound in a vegan leather cover. Write, capture, dissolve.",
+    price:34.99, comparePrice:null,
+    variants:[{label:"Ember Black"},{label:"Midnight Blue"},{label:"Desert Sand"}],
+    includes:["1× Hardcover notebook","120× Dissolving pages","Ribbon bookmark","Care guide"],
+    recurring:false, url:null,
   },
   {
-    id:"paper60", category:"consumable", badge:"🔄 Auto-Ship",
-    name:"Ember Paper — 60 Sheets", emoji:"📝",
+    id:"refills", category:"consumable", badge:"🔄 Refills",
+    name:"Refillable Paper — 60 Sheets", emoji:"📝",
     tagline:"Cold-water dissolving. Writes like normal paper.",
-    desc:"Our proprietary dissolving paper. PVA-based, non-toxic, biodegradable. Disappears in under 15 seconds in room-temperature water. Pre-cut to fit folded into the Ember Jar. Works with ballpoint, felt-tip, or pencil.",
+    desc:"Refill pack for your Calma Calma notebook or standalone use. PVA-based, non-toxic, biodegradable. Disappears in under 15 seconds.",
     price:9.99, comparePrice:14.99,
     variants:[{label:"Standard (60 sheets)"},{label:"Double (120 sheets) — $16.99"}],
-    includes:["60 pre-cut dissolving sheets","Resealable kraft pouch","Instructions card"],
-    recurring:true, recurringLabel:"Auto-ship every 60 days",
-    url:"https://www.amazon.com/dp/B091TGYK9W",
+    includes:["60 pre-cut dissolving sheets","Resealable kraft pouch"],
+    recurring:true, recurringLabel:"Auto-ship every 60 days", url:null,
   },
   {
-    id:"pen", category:"hardware", badge:"✍️ Write Better",
-    name:"Ember Ritual Pen", emoji:"🖊️",
-    tagline:"Weighted. Smooth. Made for the moment.",
-    desc:"A brass-barrelled ballpoint pen with matte finish and the Ember flame mark. Weighted at 28g for a deliberate, intentional writing feel. Refillable. The pen you reach for when the writing matters.",
-    price:24.99, comparePrice:null,
-    variants:[{label:"Matte Black"},{label:"Brushed Brass"},{label:"Slate Grey"}],
-    includes:["1× Brass barrel pen","2× Ink refills (black)","Ember sleeve pouch"],
-    recurring:false,
-    url:"https://www.amazon.com/s?k=weighted+brass+ballpoint+pen+matte",
+    id:"wand", category:"hardware", badge:"✨ Ritual Tool",
+    name:"Magic Wand Stirrer", emoji:"🪄",
+    tagline:"Stir your words into nothing.",
+    desc:"Hand-crafted glass stirring wand for dissolving your journal pages. Borosilicate glass with a weighted tip for smooth stirring. The final step in the ritual.",
+    price:19.99, comparePrice:null,
+    variants:[{label:"Clear Crystal"},{label:"Smoky Obsidian"},{label:"Rose Quartz"}],
+    includes:["1× Glass stirring wand","Velvet pouch","Care card"],
+    recurring:false, url:null,
+  },
+  {
+    id:"jar", category:"hardware", badge:"🫙 Vessel",
+    name:"Dissolution Jar with Labels", emoji:"🫙",
+    tagline:"The ritual vessel. Labeled for each release.",
+    desc:"Wide-mouth glass apothecary jar with a set of 6 custom waterproof labels matching each dissolution ritual: Tears, Blood, Wash Away, Regular, Eternity, Never Again.",
+    price:44.99, comparePrice:null,
+    variants:[{label:"Ember Black",color:"#1a1008"},{label:"Sakura Rose",color:"#4a0a30"},{label:"Zen Slate",color:"#101414"}],
+    includes:["1× Glass dissolution jar","1× Weighted lid","6× Ritual labels","Safety card"],
+    recurring:false, url:null,
   },
   {
     id:"bundle", category:"bundle", badge:"🔥 Best Value",
-    name:"Ember Complete Kit", emoji:"📦",
+    name:"Calma Calma Complete Kit", emoji:"📦",
     tagline:"Everything you need. One box. One ritual.",
-    desc:"The full Ember experience. Jar, pen, paper, and three months of the app — all in one gift-ready box. For you or someone who needs to let something go.",
-    price:79.99, comparePrice:109.97,
+    desc:"The full Calma Calma experience. Notebook, wand, labeled jar, and refill paper — all in one gift-ready box.",
+    price:89.99, comparePrice:119.96,
     variants:[{label:"Ember Black Edition"},{label:"Sakura Rose Edition"}],
-    includes:["1× Ember Dissolve Jar","1× Ember Ritual Pen","60× Dissolving sheets","3-month app Pro free","Gift box + ribbon"],
-    recurring:false,
-    url:"https://www.amazon.com/s?k=journaling+gift+set",
+    includes:["1× Calma Calma Notebook","1× Magic Wand Stirrer","1× Dissolution Jar + Labels","60× Extra dissolving sheets","Gift box"],
+    recurring:false, url:null,
   },
   {
     id:"sub", category:"subscription", badge:"📱 App",
-    name:"Ember Pro — App Subscription", emoji:"🔥",
-    tagline:"All 12 AI advisor lenses. Unlimited entries.",
-    desc:"Unlock every advisor lens including ADHD Coach, Buddhist, Christian, Stoic, Business, and more. Unlimited captures, live AI insights, full theme library, all companion characters, encrypted cloud backup.",
+    name:"Calma Calma Pro", emoji:"🔥",
+    tagline:"All AI advisor lenses. Unlimited entries.",
+    desc:"Unlock every advisor lens including ADHD Coach, Buddhist, Christian, Stoic, Business, and more. Unlimited captures, live AI insights, full theme library, all companion characters.",
     price:5.99, comparePrice:null,
     priceLabel:"/ month",
     variants:[{label:"Monthly — $5.99/mo"},{label:"Annual — $49/yr (save 32%)"}],
     includes:["All 12 AI lenses","Unlimited captures","6 themes + all companions","Encrypted cloud backup","Priority support"],
-    recurring:true, recurringLabel:"Cancel anytime",
-    url:null,
+    recurring:true, recurringLabel:"Cancel anytime", url:null,
   },
 ];
 

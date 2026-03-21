@@ -442,7 +442,7 @@ function AiInsightPanel({ entry, lens, char, t, onClose }) {
 // ─────────────────────────────────────────
 // HOME
 // ─────────────────────────────────────────
-function HomeScreen({ t, char, activeLens, entries, onEntry, onCapture, onSettings }) {
+function HomeScreen({ t, char, activeLens, entries, onEntry, onSettings }) {
   const [showWins, setShowWins] = useState(false);
   const [quadrantView, setQuadrantView] = useState(null);
   const heatDays = Array.from({length:35},(_,i)=>({ has:[2,5,7,12,17,19,22,24,30,32].includes(i), today:i===34 }));
@@ -536,19 +536,16 @@ function HomeScreen({ t, char, activeLens, entries, onEntry, onCapture, onSettin
         <div style={{ height:100 }} />
       </div>
 
-      <div style={{ position:"absolute", bottom:0, left:0, right:0, padding:"16px 24px 36px", background:`linear-gradient(to top, ${t.bg} 60%, transparent)`, display:"flex", justifyContent:"center" }}>
-        <button className="ember-btn" onClick={onCapture} style={{ background:t.accent, color:"#0c0804", fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:15, padding:"14px 44px", borderRadius:50, boxShadow:`0 0 30px ${t.accent}55, 0 8px 24px #00000060`, display:"flex", alignItems:"center", gap:8 }}>
-          📷 Capture Entry
-        </button>
-      </div>
+      {/* Bottom padding for nav bar */}
+      <div style={{ height:80 }} />
     </div>
   );
 }
 
 // ─────────────────────────────────────────
-// CAPTURE
+// CAPTURE (PRIMARY SCREEN)
 // ─────────────────────────────────────────
-function CaptureScreen({ t, activeLens, char, onBack, onDone, onSaveEntry }) {
+function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry }) {
   const [phase, setPhase] = useState("camera"); // camera | quadrant | details | saved
   const [photoData, setPhotoData] = useState(null);
   const [selectedQuadrant, setSelectedQuadrant] = useState(null);
@@ -559,10 +556,23 @@ function CaptureScreen({ t, activeLens, char, onBack, onDone, onSaveEntry }) {
   const handlePhotoCapture = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    // Resize image to avoid huge base64 strings
+    const img = new Image();
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPhotoData(reader.result);
-      setPhase("quadrant");
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxW = 1200;
+        const scale = Math.min(1, maxW / img.width);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const resized = canvas.toDataURL("image/jpeg", 0.8);
+        setPhotoData(resized);
+        setPhase("quadrant");
+      };
+      img.src = reader.result;
     };
     reader.readAsDataURL(file);
   };
@@ -583,32 +593,32 @@ function CaptureScreen({ t, activeLens, char, onBack, onDone, onSaveEntry }) {
     setTimeout(onDone, 1400);
   };
 
+  // Always keep the file input in the DOM
+  const fileInput = (
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept="image/*"
+      capture="environment"
+      onChange={handlePhotoCapture}
+      style={{ position:"absolute", top:-9999, left:-9999, opacity:0, width:1, height:1 }}
+    />
+  );
+
   return (
     <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, position:"relative" }}>
-      {/* Header */}
-      <div style={{ padding:"52px 20px 14px", display:"flex", alignItems:"center", gap:10, position:"absolute", top:0, left:0, right:0, zIndex:10 }}>
-        <button className="ember-btn" onClick={phase==="camera"?onBack:()=>setPhase(phase==="quadrant"?"camera":"quadrant")} style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:20, padding:"6px 12px", color:t.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>← Back</button>
-        <div style={{ fontFamily:"'Lora',serif", fontSize:15, color:t.text }}>
-          {phase==="camera" ? "Take Photo" : phase==="quadrant" ? "Choose Quadrant" : phase==="details" ? "Add Details" : "Saved!"}
-        </div>
-      </div>
+      {fileInput}
 
-      {/* PHASE: Camera */}
+      {/* PHASE: Camera — this is the main/default screen */}
       {phase==="camera" && (
-        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:32 }}>
-          <div style={{ fontSize:80, marginBottom:32, animation:"breathe 3s ease-in-out infinite" }}>📷</div>
-          <div style={{ fontFamily:"'Lora',serif", fontSize:24, color:t.text, marginBottom:16, textAlign:"center" }}>Take a photo of your handwritten note</div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginBottom:40, textAlign:"center", maxWidth:280 }}>The app will access your phone camera. Write clearly and capture the whole page.</div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handlePhotoCapture}
-            style={{ display:"none" }}
-          />
+        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:32, paddingBottom:100 }}>
+          <Companion char={char} t={t} size={64} mood="calm" />
+          <div style={{ fontFamily:"'Lora',serif", fontSize:26, color:t.text, marginTop:20, marginBottom:8, textAlign:"center" }}>Capture your note</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginBottom:40, textAlign:"center", maxWidth:280, lineHeight:1.6 }}>
+            Write on paper, then photograph it here.<br/>The paper dissolves. The meaning stays.
+          </div>
           <button className="ember-btn" onClick={()=>fileInputRef.current?.click()}
-            style={{ width:80, height:80, borderRadius:"50%", background:t.accent, border:"none", boxShadow:`0 0 30px ${t.accent}55`, fontSize:32, color:"#0c0804", fontWeight:600 }}>
+            style={{ width:88, height:88, borderRadius:"50%", background:t.accent, border:"4px solid #ffffff22", boxShadow:`0 0 40px ${t.accent}55, 0 8px 32px #00000066`, fontSize:36, display:"flex", alignItems:"center", justifyContent:"center" }}>
             📷
           </button>
         </div>
@@ -1315,23 +1325,120 @@ function ShopScreen({ t, cart, onAddToCart, onShowCart, onBack }) {
 // ─────────────────────────────────────────
 // BOTTOM NAV
 // ─────────────────────────────────────────
-function BottomNav({ active, t, onJournal, onShop, onSettings, cartCount }) {
+// ─────────────────────────────────────────
+// DISSOLVE SCREEN (ritual history + new dissolve)
+// ─────────────────────────────────────────
+function DissolveScreen({ t, entries, char, onBack }) {
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [showRitual, setShowRitual] = useState(false);
+  const [selectedRitual, setSelectedRitual] = useState(null);
+  const [particles] = useState(()=>Array.from({length:20},(_,i)=>({ id:i, x:Math.random()*100, delay:Math.random()*0.8, size:5+Math.random()*9 })));
+
+  const unreleased = entries.filter(e=>!e.released);
+  const released = entries.filter(e=>e.released);
+
+  const triggerRitual = (entry, ritual) => {
+    setSelectedEntry(entry);
+    setSelectedRitual(ritual);
+    setShowRitual(true);
+    setTimeout(()=>{ setShowRitual(false); entry.released=true; entry.ritual=ritual.id; setSelectedEntry(null); }, 2600);
+  };
+
+  return (
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, overflow:"hidden" }}>
+      {/* Ritual animation overlay */}
+      {showRitual && (
+        <div style={{ position:"absolute", inset:0, zIndex:50, background:"#00000099", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
+          {particles.map(p=>(
+            <div key={p.id} style={{ position:"absolute", left:`${p.x}%`, bottom:"15%", width:p.size, height:p.size, borderRadius:"50%", background:t.particle, boxShadow:`0 0 ${p.size*2}px ${t.particle}`, animation:`ember 2.2s ${p.delay}s ease-out forwards` }} />
+          ))}
+          <div style={{ textAlign:"center", zIndex:1 }}>
+            <div style={{ fontSize:72, animation:"ritual 2.6s ease-in forwards" }}>{selectedRitual?.icon || "🔥"}</div>
+            <div style={{ fontFamily:"'Lora',serif", fontSize:22, color:t.text, marginTop:16 }}>{selectedRitual?.name || "Letting it go..."}</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginTop:8 }}>The paper dissolves. The meaning stays.</div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ padding:"52px 24px 12px" }}>
+        <div style={{ fontFamily:"'Lora',serif", fontSize:26, fontWeight:600, color:t.text }}>💧 Dissolve</div>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginTop:4 }}>Record the ritual of letting go</div>
+      </div>
+
+      <div style={{ flex:1, overflowY:"auto", padding:"0 24px", paddingBottom:100 }}>
+        {/* Unreleased entries */}
+        {unreleased.length > 0 && (
+          <div style={{ marginBottom:20 }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.accent, marginBottom:10 }}>Ready to release ({unreleased.length})</div>
+            {unreleased.map(entry=>(
+              <div key={entry.id} style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:14, marginBottom:10 }}>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:6 }}>{entry.dateShort} · {entry.quadrant ? QUADRANTS.find(q=>q.id===entry.quadrant)?.icon : "📝"}</div>
+                <div style={{ fontFamily:"'Lora',serif", fontSize:13, color:t.text, marginBottom:10 }}>{entry.preview}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:8 }}>Choose how it was dissolved:</div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                  {DESTRUCTION_RITUALS.map(r=>(
+                    <button key={r.id} className="ember-btn" onClick={()=>triggerRitual(entry, r)}
+                      style={{ background:`${t.border}44`, border:`1px solid ${t.border}`, borderRadius:10, padding:"8px 6px", display:"flex", alignItems:"center", gap:6 }}>
+                      <span style={{ fontSize:16 }}>{r.icon}</span>
+                      <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.text }}>{r.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Released history */}
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:10 }}>Released ({released.length})</div>
+        {released.length === 0 && (
+          <div style={{ textAlign:"center", padding:32 }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>💧</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted }}>No entries dissolved yet.<br/>Capture a note first, then dissolve the paper.</div>
+          </div>
+        )}
+        {released.map(entry=>{
+          const ritual = DESTRUCTION_RITUALS.find(r=>r.id===entry.ritual);
+          return (
+            <div key={entry.id} style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:12, marginBottom:8, opacity:0.7 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted }}>{entry.dateShort}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.accent, background:`${t.accent}22`, borderRadius:6, padding:"2px 8px" }}>
+                  {ritual ? `${ritual.icon} ${ritual.name}` : "🔥 Released"}
+                </div>
+              </div>
+              <div style={{ fontFamily:"'Lora',serif", fontSize:12, color:`${t.text}88`, marginTop:6 }}>{entry.preview}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function BottomNav({ active, t, onCapture, onJournal, onDissolve, onShop, onSettings, cartCount }) {
   const tabs = [
     { id:"home",     icon:"📖", label:"Journal",  action:onJournal },
+    { id:"dissolve", icon:"💧", label:"Dissolve", action:onDissolve },
+    { id:"capture",  icon:"📷", label:"Capture",  action:onCapture, primary:true },
     { id:"shop",     icon:"🛒", label:"Shop",     action:onShop, badge:cartCount },
     { id:"settings", icon:"⚙️", label:"Settings", action:onSettings },
   ];
   return (
-    <div style={{ position:"absolute", bottom:0, left:0, right:0, background:`${active==="capture"||active==="entry"?"transparent":t.surface}`, borderTop:`1px solid ${t.border}44`, display:"flex", padding:"8px 0 28px", backdropFilter:"blur(12px)" }}>
+    <div style={{ position:"absolute", bottom:0, left:0, right:0, background:t.surface, borderTop:`1px solid ${t.border}44`, display:"flex", alignItems:"flex-end", padding:"6px 0 24px", backdropFilter:"blur(12px)", zIndex:30 }}>
       {tabs.map(tab=>(
         <button key={tab.id} className="ember-btn" onClick={tab.action}
-          style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:3, background:"none", border:"none", position:"relative" }}>
-          <div style={{ fontSize:22, filter:active===tab.id?"none":"grayscale(1)", opacity:active===tab.id?1:0.5 }}>{tab.icon}</div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:active===tab.id?t.accent:t.muted }}>{tab.label}</div>
-          {tab.badge>0 && (
-            <div style={{ position:"absolute", top:0, right:"25%", width:16, height:16, borderRadius:"50%", background:t.accent, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Sans',sans-serif", fontSize:9, color:"#0c0804", fontWeight:700 }}>{tab.badge}</div>
+          style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:3, background:"none", border:"none", position:"relative", marginTop:tab.primary?-18:0 }}>
+          {tab.primary ? (
+            <div style={{ width:56, height:56, borderRadius:"50%", background:t.accent, display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, boxShadow:`0 0 24px ${t.accent}55, 0 4px 16px #00000066` }}>{tab.icon}</div>
+          ) : (
+            <div style={{ fontSize:22, filter:active===tab.id?"none":"grayscale(1)", opacity:active===tab.id?1:0.5 }}>{tab.icon}</div>
           )}
-          {active===tab.id && <div style={{ width:4, height:4, borderRadius:"50%", background:t.accent, boxShadow:`0 0 6px ${t.accent}` }} />}
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:tab.primary?t.accent:active===tab.id?t.accent:t.muted }}>{tab.label}</div>
+          {tab.badge>0 && (
+            <div style={{ position:"absolute", top:0, right:"20%", width:16, height:16, borderRadius:"50%", background:t.accent, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Sans',sans-serif", fontSize:9, color:"#0c0804", fontWeight:700 }}>{tab.badge}</div>
+          )}
+          {active===tab.id && !tab.primary && <div style={{ width:4, height:4, borderRadius:"50%", background:t.accent, boxShadow:`0 0 6px ${t.accent}` }} />}
         </button>
       ))}
     </div>
@@ -1385,7 +1492,7 @@ export default function Ember() {
         lens: settings.lens_id,
         pin: settings.pin_hash || "1234"
       });
-      setAppState("home");
+      setAppState("capture");
     } else {
       setAppState("onboarding");
     }
@@ -1415,9 +1522,9 @@ export default function Ember() {
     setConfig(cfg);
     if (user) {
       await saveUserSettings(user.id, cfg);
-      setAppState("home");
+      setAppState("capture");
     } else {
-      setAppState("home");
+      setAppState("capture");
     }
   };
 
@@ -1476,7 +1583,9 @@ export default function Ember() {
   const showNav = ["home","shop","settings"].includes(appState) || navTab==="shop";
   const mainTab = navTab;
 
+  const goCapture = () => { setNavTab("capture"); setAppState("capture"); };
   const goJournal = () => { setNavTab("home"); setAppState("home"); };
+  const goDissolve= () => { setNavTab("dissolve"); setAppState("dissolve"); };
   const goShop    = () => { setNavTab("shop"); setAppState("shop"); };
   const goSettings= () => { setNavTab("settings"); setAppState("settings"); };
 
@@ -1526,16 +1635,17 @@ export default function Ember() {
         {showCart && <CartDrawer cart={cart} t={t} onClose={()=>setShowCart(false)} onRemove={removeFromCart} onCheckout={handleCheckout} />}
 
         {appState==="onboarding" && <Onboarding onComplete={handleOnboardingComplete} />}
-        {appState==="pin"        && <PinScreen savedPin={config.pin} onUnlock={()=>setAppState("home")} t={t} />}
-        {appState==="home"       && <HomeScreen t={t} char={char} activeLens={activeLens} entries={entries} onEntry={e=>{setSelectedEntry(e);setAppState("entry");}} onCapture={()=>setAppState("capture")} onSettings={goSettings} />}
-        {appState==="capture"    && <CaptureScreen t={t} activeLens={activeLens} char={char} onBack={goJournal} onDone={goJournal} onSaveEntry={handleSaveEntry} />}
+        {appState==="pin"        && <PinScreen savedPin={config.pin} onUnlock={()=>setAppState("capture")} t={t} />}
+        {appState==="capture"    && <CaptureScreen t={t} activeLens={activeLens} char={char} onDone={goJournal} onSaveEntry={handleSaveEntry} />}
+        {appState==="home"       && <HomeScreen t={t} char={char} activeLens={activeLens} entries={entries} onEntry={e=>{setSelectedEntry(e);setAppState("entry");}} onSettings={goSettings} />}
+        {appState==="dissolve"   && <DissolveScreen t={t} entries={entries} char={char} onBack={goCapture} />}
         {appState==="entry"      && selectedEntry && <EntryScreen t={t} entry={selectedEntry} activeLens={activeLens} char={char} onBack={goJournal} />}
-        {appState==="shop"       && <ShopScreen t={t} cart={cart} onAddToCart={addToCart} onShowCart={()=>setShowCart(true)} onBack={goJournal} />}
-        {appState==="settings"   && <SettingsScreen t={t} char={char} activeLens={activeLens} theme={config.theme} setTheme={v=>setConfig(c=>({...c,theme:v}))} character={config.character} setCharacter={v=>setConfig(c=>({...c,character:v}))} lens={config.lens} setLens={v=>setConfig(c=>({...c,lens:v}))} onBack={goJournal} onSignOut={handleSignOut} />}
+        {appState==="shop"       && <ShopScreen t={t} cart={cart} onAddToCart={addToCart} onShowCart={()=>setShowCart(true)} onBack={goCapture} />}
+        {appState==="settings"   && <SettingsScreen t={t} char={char} activeLens={activeLens} theme={config.theme} setTheme={v=>setConfig(c=>({...c,theme:v}))} character={config.character} setCharacter={v=>setConfig(c=>({...c,character:v}))} lens={config.lens} setLens={v=>setConfig(c=>({...c,lens:v}))} onBack={goCapture} onSignOut={handleSignOut} />}
 
         {/* Bottom nav — shown on main screens */}
-        {["home","shop","settings"].includes(appState) && (
-          <BottomNav active={appState} t={t} onJournal={goJournal} onShop={goShop} onSettings={goSettings} cartCount={cart.length} />
+        {["capture","home","dissolve","shop","settings"].includes(appState) && (
+          <BottomNav active={appState} t={t} onCapture={goCapture} onJournal={goJournal} onDissolve={goDissolve} onShop={goShop} onSettings={goSettings} cartCount={cart.length} />
         )}
       </div>
     </div>

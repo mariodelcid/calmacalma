@@ -71,20 +71,36 @@ const DESTRUCTION_RITUALS = [
 ];
 
 const SAMPLE_ENTRIES = [
-  { id:1, date:"March 17, 2026", dateShort:"Mar 17", day:"Today",    mood:"reflective", lens:"business",   released:true,  tags:["work","sales","strategy"],  text:`Rough day at the kiosk. Sales were slow — maybe 40% of usual. I kept second-guessing my menu pricing. But I stayed calm and reorganized the prep station. Small win.\n\nNeed to think about the Tuesday slow slump and maybe try a daily special. What if I did a "Chef's Taco" at a lower price point to pull in foot traffic from the supermarket floor?`, preview:"Rough day at the kiosk. Sales were slow but I stayed calm..." },
-  { id:2, date:"March 15, 2026", dateShort:"Mar 15", day:"Saturday", mood:"frustrated", lens:"adhd",       released:false, tags:["focus","adhd","self"],       text:`Couldn't focus at all today. Started 5 things. Finished zero. I feel like something is wrong with me. Everybody else seems to just... do things.\n\nI sat staring at the prep list for 20 minutes and then rearranged the spice rack instead. At least it looks good now. But I'm frustrated with myself again.`, preview:"Couldn't focus at all. Started 5 things. Finished zero. I feel..." },
-  { id:3, date:"March 12, 2026", dateShort:"Mar 12", day:"Thursday", mood:"grateful",   lens:"counselor",  released:true,  tags:["gratitude","wins"],          text:`Feeling genuinely grateful today. The morning was quiet and I had time to think clearly before the rush. Made good numbers. A customer came back specifically to say the crepe was the best they'd had.\n\nThat meant everything. I needed to hear that today.`, preview:"Feeling genuinely grateful today. The morning was quiet..." },
-  { id:4, date:"March 10, 2026", dateShort:"Mar 10", day:"Tuesday",  mood:"heavy",      lens:"counselor",  released:true,  tags:["mood","resilience"],         text:`Everything feels heavy. Can't explain it. Just heavy. Didn't want to go in today but I did. That has to count for something.\n\nWrote this in the parking lot before I opened the kiosk. The engine was still warm.`, preview:"Everything feels heavy. Can't explain it. Just heavy..." },
+  { id:1, date:"March 17, 2026", dateShort:"Mar 17", day:"Today",    mood:"reflective", lens:"business",   released:true,  ritual:"regular", quadrant:"ideas", tags:["work","sales","strategy"],  photo:null, text:`Rough day at the kiosk. Sales were slow — maybe 40% of usual. I kept second-guessing my menu pricing. But I stayed calm and reorganized the prep station. Small win.\n\nNeed to think about the Tuesday slow slump and maybe try a daily special. What if I did a "Chef's Taco" at a lower price point to pull in foot traffic from the supermarket floor?`, preview:"Rough day at the kiosk. Sales were slow but I stayed calm..." },
+  { id:2, date:"March 15, 2026", dateShort:"Mar 15", day:"Saturday", mood:"frustrated", lens:"adhd",       released:false, ritual:null, quadrant:"notes", tags:["focus","adhd","self"],       photo:null, text:`Couldn't focus at all today. Started 5 things. Finished zero. I feel like something is wrong with me. Everybody else seems to just... do things.\n\nI sat staring at the prep list for 20 minutes and then rearranged the spice rack instead. At least it looks good now. But I'm frustrated with myself again.`, preview:"Couldn't focus at all. Started 5 things. Finished zero. I feel..." },
+  { id:3, date:"March 12, 2026", dateShort:"Mar 12", day:"Thursday", mood:"grateful",   lens:"counselor",  released:true,  ritual:"wash", quadrant:"confidant", tags:["gratitude","wins"],          photo:null, text:`Feeling genuinely grateful today. The morning was quiet and I had time to think clearly before the rush. Made good numbers. A customer came back specifically to say the crepe was the best they'd had.\n\nThat meant everything. I needed to hear that today.`, preview:"Feeling genuinely grateful today. The morning was quiet..." },
+  { id:4, date:"March 10, 2026", dateShort:"Mar 10", day:"Tuesday",  mood:"heavy",      lens:"counselor",  released:true,  ritual:"tears", quadrant:"universe", tags:["mood","resilience"],         photo:null, text:`Everything feels heavy. Can't explain it. Just heavy. Didn't want to go in today but I did. That has to count for something.\n\nWrote this in the parking lot before I opened the kiosk. The engine was still warm.`, preview:"Everything feels heavy. Can't explain it. Just heavy..." },
 ];
 
 const MOOD_COLORS = { reflective:"#6366f1", frustrated:"#ef4444", grateful:"#10b981", heavy:"#94a3b8", calm:"#22c55e" };
 
 const QUADRANTS = [
-  { id:"universe", icon:"🌌", name:"Universe Instructions", count:0 },
-  { id:"confidant", icon:"🤫", name:"My Confidant", count:0 },
-  { id:"ideas", icon:"💡", name:"My Ideas", count:0 },
-  { id:"notes", icon:"📝", name:"Notes", count:0 },
+  { id:"universe", name:"Universe Instructions", icon:"🌌", desc:"Messages from the cosmos" },
+  { id:"confidant", name:"My Confidant", icon:"🤫", desc:"Private truths" },
+  { id:"ideas", name:"My Ideas", icon:"💡", desc:"Sparks & inspiration" },
+  { id:"notes", name:"Notes", icon:"📝", desc:"Everyday captures" },
 ];
+
+const COMPANION_PROMPTS = {
+  mochi: "You speak as Mochi — gentle, round, non-judgmental. Use soft language, never push. You're like a warm hug in word form.",
+  hoshi: "You speak as Hoshi — an excitable little star. Enthusiastic but sincere. Find light in everything. Use short, bright sentences.",
+  kitsune: "You speak as Kitsune — a loyal spirit fox. Wise but playful. Speak with old-soul energy, occasionally cryptic.",
+  kumo: "You speak as Kumo — a gentle rain cloud. Melancholic but comforting. It's okay to sit with sadness. Soft, misty words.",
+  pip: "You speak as Pip — a penguin detective. Curious, analytical, slightly formal. Look for clues in the writing. Ask investigative questions.",
+  rex: "You speak as Rex — a T-Rex in a business suit. Surprisingly professional. Direct, efficient, but endearing. Uses business metaphors.",
+  tanuki: "You speak as Tanuki — a monk raccoon. Deeply wise, calm, spiritual. Speaks in simple truths. May reference nature or seasons.",
+  frida: "You speak as Frida — a bold folk art spirit. Colorful, passionate, fierce. Celebrates expression and authenticity. Artistic metaphors.",
+  abuela: "You speak as Abuela — a wise old grandmother. Warm, knowing, no-nonsense wisdom built from decades of life. Calls the user 'mijo' or 'mija'. Mixes love with truth.",
+  abuelo: "You speak as Abuelo — a patient old grandfather. Steady, calm, measured. Tells brief stories to make a point. Gentle humor. Deep patience.",
+  exec: "You speak as The Boss — a sharp executive. Direct, strategic, no fluff. Respects the writer's time. Finds the action item. Speaks like a mentor in a corner office.",
+  crude: "You speak as Raw — brutally honest, no sugarcoating. Blunt but cares underneath. Uses casual, real language. Might curse mildly. Cuts through BS.",
+  shifu: "You speak as Shifu — a Chinese elder with ancient wisdom. Calm, poetic, references nature and balance. Speaks in short, profound observations. May use proverb-like phrases.",
+};
 
 // ─────────────────────────────────────────
 // SMALL COMPONENTS
@@ -339,6 +355,8 @@ function AiInsightPanel({ entry, lens, char, t, onClose }) {
     setCompanionMood("thinking");
 
     const systemPrompt = LENS_PROMPTS[lens.id] || LENS_PROMPTS.counselor;
+    const companionVoice = COMPANION_PROMPTS[char.id] || "";
+    const fullPrompt = companionVoice ? `${companionVoice}\n\n${systemPrompt}` : systemPrompt;
 
     fetch("https://api.anthropic.com/v1/messages", {
       method:"POST",
@@ -350,7 +368,7 @@ function AiInsightPanel({ entry, lens, char, t, onClose }) {
       body:JSON.stringify({
         model:"claude-sonnet-4-20250514",
         max_tokens:1000,
-        system: systemPrompt,
+        system: fullPrompt,
         messages:[{
           role:"user",
           content:`Here is what I wrote in my journal today:\n\n---\n${entry.text}\n---\n\nPlease respond as my ${lens.name} advisor.`
@@ -426,7 +444,11 @@ function AiInsightPanel({ entry, lens, char, t, onClose }) {
 // ─────────────────────────────────────────
 function HomeScreen({ t, char, activeLens, entries, onEntry, onCapture, onSettings }) {
   const [showWins, setShowWins] = useState(false);
+  const [quadrantView, setQuadrantView] = useState(null);
   const heatDays = Array.from({length:35},(_,i)=>({ has:[2,5,7,12,17,19,22,24,30,32].includes(i), today:i===34 }));
+
+  const quadrantCounts = {};
+  QUADRANTS.forEach(q => { quadrantCounts[q.id] = entries.filter(e => e.quadrant === q.id).length; });
   return (
     <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, overflow:"hidden" }}>
       <div style={{ padding:"52px 24px 12px", display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
@@ -465,34 +487,48 @@ function HomeScreen({ t, char, activeLens, entries, onEntry, onCapture, onSettin
         </div>
       )}
 
-      {/* Four Quadrants Section */}
-      <div style={{ padding:"0 24px 14px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-        {QUADRANTS.map(q=>(
-          <div key={q.id} className="ember-btn" onClick={()=>{}} style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:14, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", gap:8 }}>
-            <div style={{ fontSize:28 }}>{q.icon}</div>
-            <div style={{ fontFamily:"'Lora',serif", fontSize:12, color:t.text }}>{q.name}</div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.muted }}>0 items</div>
-          </div>
-        ))}
-      </div>
+      {/* Four Quadrants Section or Back Button */}
+      {!quadrantView ? (
+        <div style={{ padding:"0 24px 14px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+          {QUADRANTS.map(q=>(
+            <div key={q.id} className="ember-btn" onClick={()=>setQuadrantView(q.id)} style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:14, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", gap:8 }}>
+              <div style={{ fontSize:28 }}>{q.icon}</div>
+              <div style={{ fontFamily:"'Lora',serif", fontSize:12, color:t.text }}>{q.name}</div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.muted }}>{quadrantCounts[q.id]} items</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ padding:"0 24px 14px" }}>
+          <button className="ember-btn" onClick={()=>setQuadrantView(null)} style={{ background:`${t.accent}15`, border:`1px solid ${t.accent}30`, borderRadius:12, padding:"9px 14px", display:"flex", alignItems:"center", gap:6 }}>
+            <span style={{ fontSize:12 }}>←</span>
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.accent }}>All entries</span>
+          </button>
+        </div>
+      )}
 
       <div style={{ flex:1, overflowY:"auto", padding:"0 24px" }}>
-        {entries.map(entry=>{
+        {(quadrantView ? entries.filter(e => e.quadrant === quadrantView) : entries).map(entry=>{
           const el = LENSES.find(l=>l.id===entry.lens);
           return (
             <div key={entry.id} className="ember-btn" onClick={()=>onEntry(entry)}
-              style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:16, marginBottom:10, cursor:"pointer", position:"relative", overflow:"hidden" }}>
+              style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:16, marginBottom:10, cursor:"pointer", position:"relative", overflow:"hidden", display:"flex", gap:12 }}>
               <div style={{ position:"absolute", left:0, top:0, bottom:0, width:3, background:MOOD_COLORS[entry.mood]||t.accent, borderRadius:"3px 0 0 3px" }} />
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted }}>{entry.day} · {entry.dateShort}</div>
-                <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-                  {entry.released && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:t.muted, background:`${t.border}88`, borderRadius:6, padding:"1px 6px" }}>🔥 Released</div>}
-                  <span style={{ fontSize:13 }}>{el?.icon}</span>
+              {entry.photo && (
+                <img src={entry.photo} style={{ width:60, height:80, borderRadius:8, objectFit:"cover", flexShrink:0 }} alt="entry" />
+              )}
+              <div style={{ flex:1 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted }}>{entry.day} · {entry.dateShort}</div>
+                  <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                    {entry.released && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:t.muted, background:`${t.border}88`, borderRadius:6, padding:"1px 6px" }}>🔥 Released</div>}
+                    <span style={{ fontSize:13 }}>{el?.icon}</span>
+                  </div>
                 </div>
-              </div>
-              <div style={{ fontFamily:"'Lora',serif", fontSize:13, color:`${t.text}cc`, lineHeight:1.5 }}>{entry.preview}</div>
-              <div style={{ display:"flex", gap:5, marginTop:8, flexWrap:"wrap" }}>
-                {entry.tags.map(tag=><Tag key={tag} label={tag} t={t} />)}
+                <div style={{ fontFamily:"'Lora',serif", fontSize:13, color:`${t.text}cc`, lineHeight:1.5 }}>{entry.preview}</div>
+                <div style={{ display:"flex", gap:5, marginTop:8, flexWrap:"wrap" }}>
+                  {entry.tags.map(tag=><Tag key={tag} label={tag} t={t} />)}
+                </div>
               </div>
             </div>
           );
@@ -512,72 +548,142 @@ function HomeScreen({ t, char, activeLens, entries, onEntry, onCapture, onSettin
 // ─────────────────────────────────────────
 // CAPTURE
 // ─────────────────────────────────────────
-function CaptureScreen({ t, activeLens, onBack, onDone, onSaveEntry }) {
-  const [phase, setPhase] = useState("ready");
+function CaptureScreen({ t, activeLens, char, onBack, onDone, onSaveEntry }) {
+  const [phase, setPhase] = useState("camera"); // camera | quadrant | details | saved
+  const [photoData, setPhotoData] = useState(null);
+  const [selectedQuadrant, setSelectedQuadrant] = useState(null);
+  const [typedText, setTypedText] = useState("");
+  const [mood, setMood] = useState("reflective");
+  const fileInputRef = useRef(null);
 
-  const handleCapture = () => {
-    setPhase("detecting");
-    setTimeout(()=>{
-      setPhase("captured");
-      if (onSaveEntry) {
-        onSaveEntry({
-          text: "Entry captured via camera scan",
-          mood: "reflective",
-          lens: activeLens.id,
-          released: false,
-          tags: [],
-          date: new Date().toISOString().split('T')[0]
-        });
-      }
-      setTimeout(onDone, 1400);
-    }, 1500);
+  const handlePhotoCapture = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoData(reader.result);
+      setPhase("quadrant");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = () => {
+    setPhase("saved");
+    onSaveEntry({
+      text: typedText || "Handwritten entry — view photo",
+      photo: photoData,
+      quadrant: selectedQuadrant,
+      mood: mood,
+      lens: activeLens.id,
+      released: false,
+      ritual: null,
+      tags: [],
+      date: new Date().toISOString().split('T')[0]
+    });
+    setTimeout(onDone, 1400);
   };
 
   return (
-    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:"#000" }}>
-      <div style={{ padding:"52px 20px 14px", display:"flex", alignItems:"center", gap:10, position:"absolute", top:0, left:0, right:0, zIndex:10, background:"#00000077" }}>
-        <button className="ember-btn" onClick={onBack} style={{ background:"#ffffff22", border:"none", borderRadius:20, padding:"6px 12px", color:"#fff", fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>← Back</button>
-        <div style={{ fontFamily:"'Lora',serif", fontSize:15, color:"#fff" }}>Capture Entry</div>
-      </div>
-      <div style={{ flex:1, position:"relative", background:"#0a0a0a", display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <div style={{
-          width:270, height:350, background:phase==="captured"?"#fff":"#f5f0e8", borderRadius:4, position:"relative",
-          boxShadow:`0 0 0 3000px #0a0a0a88, 0 16px 48px #00000088`,
-          border:`3px solid ${phase==="detecting"?t.accent:phase==="captured"?"#22c55e":"transparent"}`,
-          transition:"all 0.3s", filter:phase==="captured"?"brightness(2.5) blur(8px)":"none", opacity:phase==="captured"?0:1
-        }}>
-          {[40,60,80,100,120,140,160,180,200,220,240,260].map(y=><div key={y} style={{ position:"absolute", left:18, right:18, top:y, height:1, background:"#d0ccc0" }} />)}
-          <div style={{ position:"absolute", top:28, left:20, fontFamily:"cursive", fontSize:12, color:"#2a2a2a", lineHeight:"20px", transform:"rotate(-0.4deg)" }}>
-            <div>March 17 —</div>
-            <div style={{ marginTop:10 }}>Rough day at the kiosk.</div>
-            <div>Sales were slow.</div>
-            <div>But I stayed calm.</div>
-            <div style={{ marginTop:18 }}>Need to try a daily</div>
-            <div>special on Tuesdays.</div>
-          </div>
-          {[[0,0],[1,0],[0,1],[1,1]].map(([x,y],i)=>(
-            <div key={i} style={{ position:"absolute", [x?"right":"left"]:-3, [y?"bottom":"top"]:-3, width:18, height:18, borderTop:!y?`3px solid ${t.accent}`:"none", borderBottom:y?`3px solid ${t.accent}`:"none", borderLeft:!x?`3px solid ${t.accent}`:"none", borderRight:x?`3px solid ${t.accent}`:"none" }} />
-          ))}
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, position:"relative" }}>
+      {/* Header */}
+      <div style={{ padding:"52px 20px 14px", display:"flex", alignItems:"center", gap:10, position:"absolute", top:0, left:0, right:0, zIndex:10 }}>
+        <button className="ember-btn" onClick={phase==="camera"?onBack:()=>setPhase(phase==="quadrant"?"camera":"quadrant")} style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:20, padding:"6px 12px", color:t.muted, fontFamily:"'DM Sans',sans-serif", fontSize:12 }}>← Back</button>
+        <div style={{ fontFamily:"'Lora',serif", fontSize:15, color:t.text }}>
+          {phase==="camera" ? "Take Photo" : phase==="quadrant" ? "Choose Quadrant" : phase==="details" ? "Add Details" : "Saved!"}
         </div>
-        {phase==="detecting" && (
-          <div style={{ position:"absolute", fontFamily:"'DM Sans',sans-serif", color:t.accent, fontSize:13, animation:"pulse 1s infinite", textAlign:"center" }}>
-            Detecting edges...
-          </div>
-        )}
-        {phase==="captured" && (
-          <div className="fade-in" style={{ position:"absolute", textAlign:"center" }}>
-            <div style={{ fontSize:52 }}>✅</div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", color:"#fff", marginTop:10 }}>Captured!</div>
-          </div>
-        )}
       </div>
-      <div style={{ background:"#111", padding:"20px 24px 44px", display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
-        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#888" }}>{activeLens.icon} {activeLens.name} lens active</div>
-        <button className="ember-btn" onClick={handleCapture} disabled={phase!=="ready"}
-          style={{ width:68, height:68, borderRadius:"50%", background:phase==="ready"?t.accent:"#555", border:"4px solid #ffffff33", boxShadow:phase==="ready"?`0 0 24px ${t.accent}55`:"none", fontSize:24 }}>
-          {phase==="ready"?"📸":phase==="detecting"?"⏳":"✅"}
-        </button>
-      </div>
+
+      {/* PHASE: Camera */}
+      {phase==="camera" && (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:32 }}>
+          <div style={{ fontSize:80, marginBottom:32, animation:"breathe 3s ease-in-out infinite" }}>📷</div>
+          <div style={{ fontFamily:"'Lora',serif", fontSize:24, color:t.text, marginBottom:16, textAlign:"center" }}>Take a photo of your handwritten note</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginBottom:40, textAlign:"center", maxWidth:280 }}>The app will access your phone camera. Write clearly and capture the whole page.</div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhotoCapture}
+            style={{ display:"none" }}
+          />
+          <button className="ember-btn" onClick={()=>fileInputRef.current?.click()}
+            style={{ width:80, height:80, borderRadius:"50%", background:t.accent, border:"none", boxShadow:`0 0 30px ${t.accent}55`, fontSize:32, color:"#0c0804", fontWeight:600 }}>
+            📷
+          </button>
+        </div>
+      )}
+
+      {/* PHASE: Quadrant */}
+      {phase==="quadrant" && (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"100px 24px 20px", overflow:"auto" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 1 of 3</div>
+          <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:20 }}>Where does this belong?</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            {QUADRANTS.map(q=>(
+              <button key={q.id} className="ember-btn" onClick={()=>{ setSelectedQuadrant(q.id); setPhase("details"); }}
+                style={{ background:selectedQuadrant===q.id?`${t.accent}22`:t.card, border:`1px solid ${selectedQuadrant===q.id?t.accent:t.border}`, borderRadius:16, padding:18, display:"flex", flexDirection:"column", alignItems:"center", gap:10, cursor:"pointer", transition:"all 0.2s" }}>
+                <div style={{ fontSize:36 }}>{q.icon}</div>
+                <div style={{ fontFamily:"'Lora',serif", fontSize:13, color:t.text }}>{q.name}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.muted }}>{q.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* PHASE: Details */}
+      {phase==="details" && (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"100px 24px 20px", overflow:"auto" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 2 of 3</div>
+          <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:20 }}>Add your transcription</div>
+
+          {/* Photo thumbnail */}
+          {photoData && (
+            <img src={photoData} style={{ width:"100%", maxHeight:120, borderRadius:12, marginBottom:16, objectFit:"cover" }} alt="captured" />
+          )}
+
+          {/* Mood selector */}
+          <div style={{ marginBottom:18 }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:8 }}>Mood</div>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              {["reflective","grateful","frustrated","heavy","calm"].map(m=>(
+                <button key={m} className="ember-btn" onClick={()=>setMood(m)}
+                  style={{ background:mood===m?MOOD_COLORS[m]:t.card, border:`1px solid ${mood===m?MOOD_COLORS[m]:t.border}`, borderRadius:20, padding:"6px 12px", fontFamily:"'DM Sans',sans-serif", fontSize:11, color:mood===m?"#fff":t.text, cursor:"pointer", transition:"all 0.2s" }}>
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Transcription textarea */}
+          <div style={{ marginBottom:20 }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:8 }}>Typed transcription (optional)</div>
+            <textarea
+              value={typedText}
+              onChange={(e)=>setTypedText(e.target.value)}
+              placeholder="Type out the handwritten text here..."
+              style={{ width:"100%", minHeight:100, background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:12, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.text, resize:"none" }}
+            />
+          </div>
+
+          <button className="ember-btn" onClick={handleSave}
+            style={{ background:t.accent, color:"#0c0804", fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:14, padding:"14px 0", borderRadius:12, width:"100%", marginTop:"auto" }}>
+            Save Entry
+          </button>
+        </div>
+      )}
+
+      {/* PHASE: Saved */}
+      {phase==="saved" && (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:32 }}>
+          <div className="fade-in" style={{ textAlign:"center" }}>
+            <div style={{ fontSize:72, marginBottom:24, animation:"ritual 2.6s ease-in forwards" }}>✅</div>
+            <div style={{ fontFamily:"'Lora',serif", fontSize:24, color:t.text, marginBottom:12 }}>Entry Saved!</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted }}>Your note is now in your journal.</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -663,13 +769,17 @@ function EntryScreen({ t, entry, activeLens, char, onBack }) {
       <div style={{ flex:1, margin:"0 24px", background:t.card, borderRadius:16, border:`1px solid ${t.border}`, overflow:"hidden" }}>
         {view==="image" ? (
           <div style={{ height:"100%", display:"flex", alignItems:"center", justifyContent:"center", padding:16, background:`${t.bg}66` }}>
-            <div style={{ width:"100%", maxWidth:270, background:"#f5f0e8", borderRadius:6, padding:22, minHeight:260, position:"relative", boxShadow:"0 8px 40px #00000055" }}>
-              {[0,20,40,60,80,100,120,140,160,180,200].map(y=><div key={y} style={{ position:"absolute", left:14, right:14, top:y+42, height:1, background:"#ddd" }} />)}
-              <div style={{ fontFamily:"cursive", fontSize:12, color:"#2a2a2a", lineHeight:"20px", transform:"rotate(-0.3deg)", position:"relative", zIndex:1 }}>
-                {entry.date} —<br/><br/>{entry.text.split("\n").filter(Boolean).map((l,i)=><div key={i}>{l}</div>)}
+            {entry.photo ? (
+              <img src={entry.photo} style={{ width:"100%", height:"100%", objectFit:"contain", borderRadius:6 }} alt="entry-photo" />
+            ) : (
+              <div style={{ width:"100%", maxWidth:270, background:"#f5f0e8", borderRadius:6, padding:22, minHeight:260, position:"relative", boxShadow:"0 8px 40px #00000055" }}>
+                {[0,20,40,60,80,100,120,140,160,180,200].map(y=><div key={y} style={{ position:"absolute", left:14, right:14, top:y+42, height:1, background:"#ddd" }} />)}
+                <div style={{ fontFamily:"cursive", fontSize:12, color:"#2a2a2a", lineHeight:"20px", transform:"rotate(-0.3deg)", position:"relative", zIndex:1 }}>
+                  {entry.date} —<br/><br/>{entry.text.split("\n").filter(Boolean).map((l,i)=><div key={i}>{l}</div>)}
+                </div>
+                {released && <div style={{ position:"absolute", top:8, right:8, background:"#00000066", borderRadius:6, padding:"2px 7px", fontFamily:"'DM Sans',sans-serif", fontSize:9, color:"#f59e0b" }}>🔥 Released</div>}
               </div>
-              {released && <div style={{ position:"absolute", top:8, right:8, background:"#00000066", borderRadius:6, padding:"2px 7px", fontFamily:"'DM Sans',sans-serif", fontSize:9, color:"#f59e0b" }}>🔥 Released</div>}
-            </div>
+            )}
           </div>
         ) : (
           <div style={{ height:"100%", overflowY:"auto", padding:22 }}>
@@ -1290,8 +1400,11 @@ export default function Ember() {
         mood: entry.mood,
         lens: entry.lens,
         released: entry.released,
+        ritual: entry.ritual || null,
+        quadrant: entry.quadrant || 'notes',
         tags: entry.tags || [],
         text: entry.text,
+        photo: entry.photo || null,
         preview: entry.text.substring(0, 50) + '...'
       }));
       setEntries(formattedEntries);
@@ -1332,8 +1445,11 @@ export default function Ember() {
         mood: savedEntry.mood,
         lens: savedEntry.lens,
         released: savedEntry.released,
+        ritual: savedEntry.ritual || null,
+        quadrant: savedEntry.quadrant || 'notes',
         tags: savedEntry.tags || [],
         text: savedEntry.text,
+        photo: savedEntry.photo || null,
         preview: savedEntry.text.substring(0, 50) + '...'
       };
       setEntries(prev => [formattedEntry, ...prev]);
@@ -1412,7 +1528,7 @@ export default function Ember() {
         {appState==="onboarding" && <Onboarding onComplete={handleOnboardingComplete} />}
         {appState==="pin"        && <PinScreen savedPin={config.pin} onUnlock={()=>setAppState("home")} t={t} />}
         {appState==="home"       && <HomeScreen t={t} char={char} activeLens={activeLens} entries={entries} onEntry={e=>{setSelectedEntry(e);setAppState("entry");}} onCapture={()=>setAppState("capture")} onSettings={goSettings} />}
-        {appState==="capture"    && <CaptureScreen t={t} activeLens={activeLens} onBack={goJournal} onDone={goJournal} onSaveEntry={handleSaveEntry} />}
+        {appState==="capture"    && <CaptureScreen t={t} activeLens={activeLens} char={char} onBack={goJournal} onDone={goJournal} onSaveEntry={handleSaveEntry} />}
         {appState==="entry"      && selectedEntry && <EntryScreen t={t} entry={selectedEntry} activeLens={activeLens} char={char} onBack={goJournal} />}
         {appState==="shop"       && <ShopScreen t={t} cart={cart} onAddToCart={addToCart} onShowCart={()=>setShowCart(true)} onBack={goJournal} />}
         {appState==="settings"   && <SettingsScreen t={t} char={char} activeLens={activeLens} theme={config.theme} setTheme={v=>setConfig(c=>({...c,theme:v}))} character={config.character} setCharacter={v=>setConfig(c=>({...c,character:v}))} lens={config.lens} setLens={v=>setConfig(c=>({...c,lens:v}))} onBack={goJournal} onSignOut={handleSignOut} />}

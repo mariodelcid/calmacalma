@@ -343,96 +343,129 @@ function PinScreen({ savedPin, onUnlock, t }) {
 // ─────────────────────────────────────────
 // AI INSIGHT PANEL (live Claude API)
 // ─────────────────────────────────────────
-function AiInsightPanel({ entry, lens, char, t, onClose }) {
-  const [status, setStatus] = useState("loading"); // loading | done | error
-  const [insight, setInsight] = useState("");
+function AiChatPanel({ entry, lens, char, t, onClose }) {
+  const [messages, setMessages] = useState([]);
+  const [inputText, setInputText] = useState("");
+  const [loading, setLoading] = useState(false);
   const [companionMood, setCompanionMood] = useState("thinking");
+  const chatEndRef = useRef(null);
+
+  const systemPrompt = (LENS_PROMPTS[lens.id] || LENS_PROMPTS.counselor);
+  const companionVoice = COMPANION_PROMPTS[char.id] || "";
+  const fullPrompt = companionVoice
+    ? `${companionVoice}\n\n${systemPrompt}\n\nYou are having an ongoing conversation about a journal entry. Keep responses concise (2-4 sentences). Be warm and present.`
+    : `${systemPrompt}\n\nYou are having an ongoing conversation about a journal entry. Keep responses concise (2-4 sentences). Be warm and present.`;
 
   useEffect(() => {
-    let cancelled = false;
-    setStatus("loading");
-    setInsight("");
+    const initMsg = { role:"user", content:`Here is what I wrote in my journal today:\n\n---\n${entry.text}\n---\n\nPlease respond as my ${lens.name} advisor.` };
+    sendToApi([initMsg], true);
+  }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior:"smooth" });
+  }, [messages, loading]);
+
+  const sendToApi = async (apiMessages, isInitial = false) => {
+    setLoading(true);
     setCompanionMood("thinking");
-
-    const systemPrompt = LENS_PROMPTS[lens.id] || LENS_PROMPTS.counselor;
-    const companionVoice = COMPANION_PROMPTS[char.id] || "";
-    const fullPrompt = companionVoice ? `${companionVoice}\n\n${systemPrompt}` : systemPrompt;
-
-    fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{ "Content-Type": "application/json",
-      "x-api-key": process.env.REACT_APP_ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true"
-           },
-      body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",
-        max_tokens:1000,
-        system: fullPrompt,
-        messages:[{
-          role:"user",
-          content:`Here is what I wrote in my journal today:\n\n---\n${entry.text}\n---\n\nPlease respond as my ${lens.name} advisor.`
-        }]
-      })
-    })
-    .then(r=>r.json())
-    .then(data=>{
-      if (cancelled) return;
-      const text = data.content?.find(b=>b.type==="text")?.text || "I'm here with you.";
-      setInsight(text);
-      setStatus("done");
-      // Pick companion mood based on lens + content
+    try {
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "x-api-key": process.env.REACT_APP_ANTHROPIC_API_KEY,
+          "anthropic-version":"2023-06-01",
+          "anthropic-dangerous-direct-browser-access":"true"
+        },
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:1000,
+          system: fullPrompt,
+          messages: apiMessages.map(m=>({ role:m.role, content:m.content }))
+        })
+      });
+      const data = await resp.json();
+      const aiText = data.content?.find(b=>b.type==="text")?.text || "I'm here with you.";
+      const aiMsg = { role:"assistant", content:aiText };
+      if (isInitial) {
+        setMessages([apiMessages[0], aiMsg]);
+      } else {
+        setMessages(prev => [...prev, aiMsg]);
+      }
       const moodMap = { counselor:"empathetic", psychologist:"thinking", adhd:"encouraging", buddhist:"calm", christian:"calm", business:"encouraging", accountant:"thinking", stoic:"calm", lifecoach:"excited", grief:"empathetic", friend:"calm" };
       setCompanionMood(moodMap[lens.id] || "calm");
-    })
-    .catch(()=>{
-      if (cancelled) return;
-      setStatus("error");
+    } catch(e) {
+      setMessages(prev => [...prev, { role:"assistant", content:"Something interrupted our connection. Try again." }]);
       setCompanionMood("neutral");
-    });
+    }
+    setLoading(false);
+  };
 
-    return () => { cancelled = true; };
-  }, [entry.id, lens.id]);
+  const handleSend = () => {
+    if (!inputText.trim() || loading) return;
+    const userMsg = { role:"user", content:inputText.trim() };
+    const newMsgs = [...messages, userMsg];
+    setMessages(newMsgs);
+    setInputText("");
+    sendToApi(newMsgs);
+  };
 
   return (
-    <div className="slide-up" style={{ margin:"12px 24px 0", background:`${lens.color}15`, border:`1px solid ${lens.color}44`, borderRadius:18, padding:16, backdropFilter:"blur(12px)" }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <Companion char={char} t={t} size={36} mood={companionMood} />
+    <div className="slide-up" style={{ margin:"8px 24px 0", background:`${lens.color}15`, border:`1px solid ${lens.color}44`, borderRadius:18, padding:14, backdropFilter:"blur(12px)", display:"flex", flexDirection:"column", maxHeight:320 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <Companion char={char} t={t} size={32} mood={companionMood} />
           <div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:lens.color, fontWeight:600 }}>{lens.icon} {lens.name}</div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.muted }}>AI Advisor · Ember</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:lens.color, fontWeight:600 }}>{lens.icon} {lens.name} Chat</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:t.muted }}>AI Advisor · Ember</div>
           </div>
         </div>
-        <button className="ember-btn" onClick={onClose} style={{ color:t.muted, fontSize:18, background:"none", border:"none", lineHeight:1 }}>×</button>
+        <button className="ember-btn" onClick={onClose} style={{ color:t.muted, fontSize:16, background:"none", border:"none", lineHeight:1 }}>×</button>
       </div>
 
-      {status==="loading" && (
-        <div style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0" }}>
-          <div style={{ display:"flex", gap:5 }}>
+      <div style={{ flex:1, overflowY:"auto", marginBottom:8, minHeight:0 }}>
+        {messages.map((m,i)=>(
+          <div key={i} style={{ marginBottom:8 }}>
+            {m.role==="assistant" ? (
+              <div className="fade-in" style={{ fontFamily:"'Lora',serif", fontSize:13, color:t.text, lineHeight:1.7, fontStyle:"italic", padding:"6px 0" }}>
+                "{m.content}"
+              </div>
+            ) : (
+              i > 0 && (
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, padding:"4px 0", textAlign:"right" }}>
+                  {m.content}
+                </div>
+              )
+            )}
+          </div>
+        ))}
+        {loading && (
+          <div style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 0" }}>
             {[0,1,2].map(i=>(
-              <div key={i} style={{ width:7, height:7, borderRadius:"50%", background:lens.color, animation:`pulse 1.2s ${i*0.2}s infinite` }} />
+              <div key={i} style={{ width:6, height:6, borderRadius:"50%", background:lens.color, animation:`pulse 1.2s ${i*0.2}s infinite` }} />
             ))}
+            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, fontStyle:"italic" }}>{char.name} is thinking...</span>
           </div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, fontStyle:"italic" }}>
-            {char.name} is reading...
-          </div>
-        </div>
-      )}
+        )}
+        <div ref={chatEndRef} />
+      </div>
 
-      {status==="done" && (
-        <div className="fade-in" style={{ fontFamily:"'Lora',serif", fontSize:14, color:t.text, lineHeight:1.75, fontStyle:"italic" }}>
-          "{insight}"
-        </div>
-      )}
+      <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+        <input
+          type="text"
+          value={inputText}
+          onChange={(e)=>setInputText(e.target.value)}
+          onKeyDown={(e)=>e.key==="Enter"&&handleSend()}
+          placeholder={`Ask ${char.name} anything...`}
+          style={{ flex:1, padding:"8px 12px", background:t.card, border:`1px solid ${t.border}`, borderRadius:10, fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.text, outline:"none" }}
+        />
+        <button className="ember-btn" onClick={handleSend} disabled={loading||!inputText.trim()}
+          style={{ background:lens.color, color:"#fff", border:"none", borderRadius:10, padding:"8px 14px", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:600, opacity:loading||!inputText.trim()?0.4:1 }}>
+          →
+        </button>
+      </div>
 
-      {status==="error" && (
-        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, fontStyle:"italic" }}>
-          Something interrupted the connection. Your words were still heard.
-        </div>
-      )}
-
-      <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${lens.color}22`, fontFamily:"'DM Sans',sans-serif", fontSize:10, color:`${t.muted}88` }}>
+      <div style={{ marginTop:8, paddingTop:6, borderTop:`1px solid ${lens.color}22`, fontFamily:"'DM Sans',sans-serif", fontSize:9, color:`${t.muted}88` }}>
         Ember is not a therapist. If you're in crisis, text or call 988.
       </div>
     </div>
@@ -442,26 +475,33 @@ function AiInsightPanel({ entry, lens, char, t, onClose }) {
 // ─────────────────────────────────────────
 // HOME
 // ─────────────────────────────────────────
-function HomeScreen({ t, char, activeLens, entries, onEntry, onSettings }) {
+function HomeScreen({ t, char, activeLens, entries, onEntry, onSettings, onCapture }) {
   const [showWins, setShowWins] = useState(false);
-  const [quadrantView, setQuadrantView] = useState(null);
   const heatDays = Array.from({length:35},(_,i)=>({ has:[2,5,7,12,17,19,22,24,30,32].includes(i), today:i===34 }));
 
-  const quadrantCounts = {};
-  QUADRANTS.forEach(q => { quadrantCounts[q.id] = entries.filter(e => e.quadrant === q.id).length; });
+  // Sort entries chronologically (newest first), using writtenDate override if present
+  const sortedEntries = [...entries].sort((a,b) => {
+    const dateA = new Date(a.writtenDate || a.date);
+    const dateB = new Date(b.writtenDate || b.date);
+    return dateB - dateA;
+  });
+
   return (
     <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, overflow:"hidden" }}>
+      {/* Header with settings gear top-left */}
       <div style={{ padding:"52px 24px 12px", display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
-        <div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
-          <div style={{ fontFamily:"'Lora',serif", fontSize:26, fontWeight:600, color:t.text }}>Your Journal</div>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <button className="ember-btn" onClick={onSettings} style={{ background:t.card, border:`1px solid ${t.border}`, width:36, height:36, borderRadius:"50%", fontSize:15 }}>⚙️</button>
+          <div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</div>
+            <div style={{ fontFamily:"'Lora',serif", fontSize:26, fontWeight:600, color:t.text }}>Your Journal</div>
+          </div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <div style={{ background:`${activeLens.color}22`, border:`1px solid ${activeLens.color}44`, borderRadius:20, padding:"4px 10px", display:"flex", alignItems:"center", gap:5 }}>
             <span style={{ fontSize:13 }}>{activeLens.icon}</span>
             <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:activeLens.color }}>{activeLens.name}</span>
           </div>
-          <button className="ember-btn" onClick={onSettings} style={{ background:t.card, border:`1px solid ${t.border}`, width:36, height:36, borderRadius:"50%", fontSize:15 }}>⚙️</button>
         </div>
       </div>
 
@@ -471,44 +511,27 @@ function HomeScreen({ t, char, activeLens, entries, onEntry, onSettings }) {
           <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4 }}>
             {heatDays.map((d,i)=><div key={i} style={{ height:9, borderRadius:2, background:d.today?t.accent:d.has?`${t.accent}55`:`${t.border}55`, boxShadow:d.today?`0 0 6px ${t.accent}`:null }} />)}
           </div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.muted, marginTop:4 }}>10 entries this month</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.muted, marginTop:4 }}>{entries.length} entries this month</div>
         </div>
       </div>
 
       <button className="ember-btn" onClick={()=>setShowWins(v=>!v)} style={{ margin:"0 24px 10px", background:`${t.accent}15`, border:`1px solid ${t.accent}30`, borderRadius:12, padding:"9px 14px", display:"flex", justifyContent:"space-between", alignItems:"center", width:"calc(100% - 48px)" }}>
-        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.accent }}>🏆 Wins Wall — 7 this month</div>
+        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.accent }}>🏆 Wins Wall — {entries.filter(e=>e.mood==="grateful").length} this month</div>
         <span style={{ fontSize:11, color:t.muted }}>{showWins?"▲":"▼"}</span>
       </button>
       {showWins && (
         <div className="fade-in" style={{ margin:"0 24px 10px", background:t.card, borderRadius:12, padding:12, border:`1px solid ${t.border}` }}>
-          {["Made good numbers on March 12","Customer praised the crepe","Showed up on a heavy day","Reorganized prep station under pressure"].map((w,i)=>(
-            <div key={i} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, padding:"4px 0", borderBottom:i<3?`1px solid ${t.border}44`:"none" }}>✦ {w}</div>
+          {entries.filter(e=>e.mood==="grateful").slice(0,4).map((w,i)=>(
+            <div key={i} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, padding:"4px 0", borderBottom:i<3?`1px solid ${t.border}44`:"none" }}>✦ {w.preview}</div>
           ))}
-        </div>
-      )}
-
-      {/* Four Quadrants Section or Back Button */}
-      {!quadrantView ? (
-        <div style={{ padding:"0 24px 14px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-          {QUADRANTS.map(q=>(
-            <div key={q.id} className="ember-btn" onClick={()=>setQuadrantView(q.id)} style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:14, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", gap:8 }}>
-              <div style={{ fontSize:28 }}>{q.icon}</div>
-              <div style={{ fontFamily:"'Lora',serif", fontSize:12, color:t.text }}>{q.name}</div>
-              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.muted }}>{quadrantCounts[q.id]} items</div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{ padding:"0 24px 14px" }}>
-          <button className="ember-btn" onClick={()=>setQuadrantView(null)} style={{ background:`${t.accent}15`, border:`1px solid ${t.accent}30`, borderRadius:12, padding:"9px 14px", display:"flex", alignItems:"center", gap:6 }}>
-            <span style={{ fontSize:12 }}>←</span>
-            <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.accent }}>All entries</span>
-          </button>
+          {entries.filter(e=>e.mood==="grateful").length===0 && (
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, padding:"4px 0" }}>No wins recorded yet. Keep journaling!</div>
+          )}
         </div>
       )}
 
       <div style={{ flex:1, overflowY:"auto", padding:"0 24px" }}>
-        {(quadrantView ? entries.filter(e => e.quadrant === quadrantView) : entries).map(entry=>{
+        {sortedEntries.map(entry=>{
           const el = LENSES.find(l=>l.id===entry.lens);
           return (
             <div key={entry.id} className="ember-btn" onClick={()=>onEntry(entry)}
@@ -536,6 +559,12 @@ function HomeScreen({ t, char, activeLens, entries, onEntry, onSettings }) {
         <div style={{ height:100 }} />
       </div>
 
+      {/* Floating Capture Button */}
+      <button className="ember-btn" onClick={onCapture}
+        style={{ position:"absolute", bottom:90, right:24, width:60, height:60, borderRadius:"50%", background:t.accent, border:"3px solid #ffffff22", boxShadow:`0 0 30px ${t.accent}55, 0 6px 24px #00000066`, fontSize:28, display:"flex", alignItems:"center", justifyContent:"center", zIndex:25 }}>
+        📷
+      </button>
+
       {/* Bottom padding for nav bar */}
       <div style={{ height:80 }} />
     </div>
@@ -545,18 +574,20 @@ function HomeScreen({ t, char, activeLens, entries, onEntry, onSettings }) {
 // ─────────────────────────────────────────
 // CAPTURE (PRIMARY SCREEN)
 // ─────────────────────────────────────────
-function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry }) {
-  const [phase, setPhase] = useState("camera"); // camera | quadrant | details | saved
+function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings }) {
+  const [phase, setPhase] = useState("camera"); // camera | ocr | quadrant | details | saved
   const [photoData, setPhotoData] = useState(null);
   const [selectedQuadrant, setSelectedQuadrant] = useState(null);
   const [typedText, setTypedText] = useState("");
   const [mood, setMood] = useState("reflective");
+  const [ocrStatus, setOcrStatus] = useState("idle"); // idle | loading | done | error
+  const [ocrText, setOcrText] = useState("");
+  const [writtenDate, setWrittenDate] = useState("");
   const fileInputRef = useRef(null);
 
   const handlePhotoCapture = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    // Resize image to avoid huge base64 strings
     const img = new Image();
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -570,11 +601,57 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry }) {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const resized = canvas.toDataURL("image/jpeg", 0.8);
         setPhotoData(resized);
-        setPhase("quadrant");
+        setPhase("ocr");
+        // Start OCR via Claude Vision API
+        runOcr(resized);
       };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
+  };
+
+  const runOcr = (imageData) => {
+    setOcrStatus("loading");
+    const base64 = imageData.split(",")[1];
+    fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "x-api-key": process.env.REACT_APP_ANTHROPIC_API_KEY,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"
+      },
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:2000,
+        system:"You are an OCR assistant for a journaling app. Extract ALL handwritten or printed text from the image exactly as written. Preserve line breaks. If you see a date written on the paper, put it on the first line in ISO format (YYYY-MM-DD) prefixed with 'DATE:'. Then put the rest of the text. If no date is visible, skip the DATE line. Output ONLY the extracted text, no commentary.",
+        messages:[{
+          role:"user",
+          content:[
+            { type:"image", source:{ type:"base64", media_type:"image/jpeg", data:base64 } },
+            { type:"text", text:"Please read and transcribe all the text in this handwritten note." }
+          ]
+        }]
+      })
+    })
+    .then(r=>r.json())
+    .then(data=>{
+      const text = data.content?.find(b=>b.type==="text")?.text || "";
+      // Parse out date if present
+      const lines = text.split("\n");
+      if (lines[0] && lines[0].startsWith("DATE:")) {
+        setWrittenDate(lines[0].replace("DATE:","").trim());
+        setOcrText(lines.slice(1).join("\n").trim());
+        setTypedText(lines.slice(1).join("\n").trim());
+      } else {
+        setOcrText(text.trim());
+        setTypedText(text.trim());
+      }
+      setOcrStatus("done");
+    })
+    .catch(()=>{
+      setOcrStatus("error");
+    });
   };
 
   const handleSave = () => {
@@ -588,12 +665,12 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry }) {
       released: false,
       ritual: null,
       tags: [],
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      writtenDate: writtenDate || null
     });
     setTimeout(onDone, 1400);
   };
 
-  // Always keep the file input in the DOM
   const fileInput = (
     <input
       ref={fileInputRef}
@@ -609,7 +686,12 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry }) {
     <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, position:"relative" }}>
       {fileInput}
 
-      {/* PHASE: Camera — this is the main/default screen */}
+      {/* Settings gear top-left */}
+      <div style={{ position:"absolute", top:52, left:20, zIndex:10 }}>
+        <button className="ember-btn" onClick={onSettings} style={{ background:t.card, border:`1px solid ${t.border}`, width:36, height:36, borderRadius:"50%", fontSize:15 }}>⚙️</button>
+      </div>
+
+      {/* PHASE: Camera */}
       {phase==="camera" && (
         <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:32, paddingBottom:100 }}>
           <Companion char={char} t={t} size={64} mood="calm" />
@@ -624,10 +706,71 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry }) {
         </div>
       )}
 
+      {/* PHASE: OCR — reading the text from image */}
+      {phase==="ocr" && (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"90px 24px 20px", overflow:"auto" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Reading your note...</div>
+          <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:16 }}>Text Extraction</div>
+
+          {photoData && (
+            <img src={photoData} style={{ width:"100%", maxHeight:140, borderRadius:12, marginBottom:16, objectFit:"cover" }} alt="captured" />
+          )}
+
+          {ocrStatus==="loading" && (
+            <div style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:20, display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
+              <div style={{ display:"flex", gap:6 }}>
+                {[0,1,2].map(i=>(
+                  <div key={i} style={{ width:8, height:8, borderRadius:"50%", background:t.accent, animation:`pulse 1.2s ${i*0.2}s infinite` }} />
+                ))}
+              </div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, fontStyle:"italic" }}>
+                {char.name} is reading your handwriting...
+              </div>
+            </div>
+          )}
+
+          {ocrStatus==="done" && (
+            <div className="fade-in">
+              {writtenDate && (
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.accent, marginBottom:8, background:`${t.accent}15`, borderRadius:8, padding:"4px 10px", display:"inline-block" }}>
+                  📅 Written date detected: {writtenDate}
+                </div>
+              )}
+              <div style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:16, marginBottom:16 }}>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:8 }}>Extracted text:</div>
+                <div style={{ fontFamily:"'Lora',serif", fontSize:14, color:t.text, lineHeight:1.7, whiteSpace:"pre-wrap" }}>{ocrText}</div>
+              </div>
+              <div style={{ display:"flex", gap:10 }}>
+                <button className="ember-btn" onClick={()=>setPhase("quadrant")}
+                  style={{ flex:1, background:t.accent, color:"#0c0804", fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:14, padding:"14px 0", borderRadius:12 }}>
+                  Save & Continue →
+                </button>
+                <button className="ember-btn" onClick={()=>{ setPhase("details"); setSelectedQuadrant("notes"); }}
+                  style={{ background:t.card, border:`1px solid ${t.border}`, fontFamily:"'DM Sans',sans-serif", fontSize:12, padding:"14px 16px", borderRadius:12, color:t.muted }}>
+                  Edit
+                </button>
+              </div>
+            </div>
+          )}
+
+          {ocrStatus==="error" && (
+            <div className="fade-in">
+              <div style={{ background:t.card, border:`1px solid #ef444444`, borderRadius:14, padding:16, marginBottom:16 }}>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#fecaca" }}>Could not read the text. You can type it manually.</div>
+              </div>
+              <button className="ember-btn" onClick={()=>setPhase("quadrant")}
+                style={{ width:"100%", background:t.accent, color:"#0c0804", fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:14, padding:"14px 0", borderRadius:12 }}>
+                Continue anyway →
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* PHASE: Quadrant */}
       {phase==="quadrant" && (
-        <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"100px 24px 20px", overflow:"auto" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 1 of 3</div>
+        <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"90px 24px 20px", overflow:"auto" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 2 of 3</div>
           <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:20 }}>Where does this belong?</div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
             {QUADRANTS.map(q=>(
@@ -644,11 +787,10 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry }) {
 
       {/* PHASE: Details */}
       {phase==="details" && (
-        <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"100px 24px 20px", overflow:"auto" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 2 of 3</div>
-          <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:20 }}>Add your transcription</div>
+        <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"90px 24px 20px", overflow:"auto" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 3 of 3</div>
+          <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:20 }}>Review & save</div>
 
-          {/* Photo thumbnail */}
           {photoData && (
             <img src={photoData} style={{ width:"100%", maxHeight:120, borderRadius:12, marginBottom:16, objectFit:"cover" }} alt="captured" />
           )}
@@ -666,13 +808,24 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry }) {
             </div>
           </div>
 
+          {/* Written date override */}
+          <div style={{ marginBottom:18 }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:8 }}>Written date (optional — overrides today)</div>
+            <input
+              type="date"
+              value={writtenDate}
+              onChange={(e)=>setWrittenDate(e.target.value)}
+              style={{ width:"100%", padding:"8px 12px", background:t.card, border:`1px solid ${t.border}`, borderRadius:10, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.text }}
+            />
+          </div>
+
           {/* Transcription textarea */}
           <div style={{ marginBottom:20 }}>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:8 }}>Typed transcription (optional)</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:8 }}>Transcription {ocrText ? "(auto-extracted, edit if needed)" : "(optional)"}</div>
             <textarea
               value={typedText}
               onChange={(e)=>setTypedText(e.target.value)}
-              placeholder="Type out the handwritten text here..."
+              placeholder="Type or review the handwritten text..."
               style={{ width:"100%", minHeight:100, background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:12, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.text, resize:"none" }}
             />
           </div>
@@ -808,12 +961,12 @@ function EntryScreen({ t, entry, activeLens, char, onBack }) {
         <div style={{ padding:"10px 24px 0" }}>
           <button className="ember-btn" onClick={()=>setShowAi(true)}
             style={{ width:"100%", background:`${entryLens.color}18`, border:`1px solid ${entryLens.color}44`, borderRadius:12, padding:"10px 16px", display:"flex", alignItems:"center", gap:8, color:entryLens.color, fontFamily:"'DM Sans',sans-serif", fontSize:13 }}>
-            <span>{entryLens.icon}</span> Ask {entryLens.name} · live AI
-            <span style={{ marginLeft:"auto", fontSize:10, background:`${entryLens.color}22`, borderRadius:8, padding:"2px 6px" }}>✦ Live</span>
+            <span>{entryLens.icon}</span> Chat with {entryLens.name}
+            <span style={{ marginLeft:"auto", fontSize:10, background:`${entryLens.color}22`, borderRadius:8, padding:"2px 6px" }}>💬 Chat</span>
           </button>
         </div>
       ) : (
-        <AiInsightPanel entry={entry} lens={entryLens} char={char} t={t} onClose={()=>setShowAi(false)} />
+        <AiChatPanel entry={entry} lens={entryLens} char={char} t={t} onClose={()=>setShowAi(false)} />
       )}
 
       {/* Bottom actions */}
@@ -1202,7 +1355,7 @@ function ProductDetail({ product, t, onClose, onAddToCart }) {
 // ─────────────────────────────────────────
 // SHOP SCREEN
 // ─────────────────────────────────────────
-function ShopScreen({ t, cart, onAddToCart, onShowCart, onBack }) {
+function ShopScreen({ t, cart, onAddToCart, onShowCart, onBack, onSettings }) {
   const [activeCategory, setActiveCategory] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -1216,9 +1369,12 @@ function ShopScreen({ t, cart, onAddToCart, onShowCart, onBack }) {
 
       {/* Header */}
       <div style={{ padding:"52px 24px 12px", display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexShrink:0 }}>
-        <div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:2 }}>Ember Shop</div>
-          <div style={{ fontFamily:"'Lora',serif", fontSize:26, fontWeight:600, color:t.text }}>The Ritual Kit</div>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <button className="ember-btn" onClick={onSettings} style={{ background:t.card, border:`1px solid ${t.border}`, width:36, height:36, borderRadius:"50%", fontSize:15 }}>⚙️</button>
+          <div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:2 }}>Ember Shop</div>
+            <div style={{ fontFamily:"'Lora',serif", fontSize:26, fontWeight:600, color:t.text }}>The Ritual Kit</div>
+          </div>
         </div>
         <button className="ember-btn" onClick={onShowCart} style={{ position:"relative", background:t.card, border:`1px solid ${t.border}`, width:44, height:44, borderRadius:"50%", fontSize:20 }}>
           🛒
@@ -1328,7 +1484,7 @@ function ShopScreen({ t, cart, onAddToCart, onShowCart, onBack }) {
 // ─────────────────────────────────────────
 // DISSOLVE SCREEN (ritual history + new dissolve)
 // ─────────────────────────────────────────
-function DissolveScreen({ t, entries, char, onBack }) {
+function DissolveScreen({ t, entries, char, onBack, onSettings }) {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [showRitual, setShowRitual] = useState(false);
   const [selectedRitual, setSelectedRitual] = useState(null);
@@ -1360,9 +1516,12 @@ function DissolveScreen({ t, entries, char, onBack }) {
         </div>
       )}
 
-      <div style={{ padding:"52px 24px 12px" }}>
-        <div style={{ fontFamily:"'Lora',serif", fontSize:26, fontWeight:600, color:t.text }}>💧 Dissolve</div>
-        <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginTop:4 }}>Record the ritual of letting go</div>
+      <div style={{ padding:"52px 24px 12px", display:"flex", alignItems:"center", gap:10 }}>
+        <button className="ember-btn" onClick={onSettings} style={{ background:t.card, border:`1px solid ${t.border}`, width:36, height:36, borderRadius:"50%", fontSize:15 }}>⚙️</button>
+        <div>
+          <div style={{ fontFamily:"'Lora',serif", fontSize:26, fontWeight:600, color:t.text }}>💧 Dissolve</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginTop:4 }}>Record the ritual of letting go</div>
+        </div>
       </div>
 
       <div style={{ flex:1, overflowY:"auto", padding:"0 24px", paddingBottom:100 }}>
@@ -1416,13 +1575,12 @@ function DissolveScreen({ t, entries, char, onBack }) {
   );
 }
 
-function BottomNav({ active, t, onCapture, onJournal, onDissolve, onShop, onSettings, cartCount }) {
+function BottomNav({ active, t, onJournal, onDissolve, onQuadrants, onShop, cartCount }) {
   const tabs = [
-    { id:"home",     icon:"📖", label:"Journal",  action:onJournal },
-    { id:"dissolve", icon:"💧", label:"Dissolve", action:onDissolve },
-    { id:"capture",  icon:"📷", label:"Capture",  action:onCapture, primary:true },
-    { id:"shop",     icon:"🛒", label:"Shop",     action:onShop, badge:cartCount },
-    { id:"settings", icon:"⚙️", label:"Settings", action:onSettings },
+    { id:"home",       icon:"📖", label:"Journal",   action:onJournal },
+    { id:"dissolve",   icon:"💧", label:"Dissolve",  action:onDissolve },
+    { id:"quadrants",  icon:"🔲", label:"Quadrants", action:onQuadrants, primary:true },
+    { id:"shop",       icon:"🛒", label:"Shop",      action:onShop, badge:cartCount },
   ];
   return (
     <div style={{ position:"absolute", bottom:0, left:0, right:0, background:t.surface, borderTop:`1px solid ${t.border}44`, display:"flex", alignItems:"flex-end", padding:"6px 0 24px", backdropFilter:"blur(12px)", zIndex:30 }}>
@@ -1441,6 +1599,93 @@ function BottomNav({ active, t, onCapture, onJournal, onDissolve, onShop, onSett
           {active===tab.id && !tab.primary && <div style={{ width:4, height:4, borderRadius:"50%", background:t.accent, boxShadow:`0 0 6px ${t.accent}` }} />}
         </button>
       ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// QUADRANTS SCREEN (dedicated center tab)
+// ─────────────────────────────────────────
+function QuadrantsScreen({ t, entries, char, activeLens, onEntry, onSettings }) {
+  const [activeQuadrant, setActiveQuadrant] = useState(null);
+
+  const quadrantCounts = {};
+  QUADRANTS.forEach(q => { quadrantCounts[q.id] = entries.filter(e => e.quadrant === q.id).length; });
+
+  return (
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, overflow:"hidden" }}>
+      {/* Header with settings gear top-left */}
+      <div style={{ padding:"52px 24px 12px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <button className="ember-btn" onClick={onSettings} style={{ background:t.card, border:`1px solid ${t.border}`, width:36, height:36, borderRadius:"50%", fontSize:15 }}>⚙️</button>
+          <div>
+            <div style={{ fontFamily:"'Lora',serif", fontSize:26, fontWeight:600, color:t.text }}>Quadrants</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted }}>Organize your captures</div>
+          </div>
+        </div>
+        <Companion char={char} t={t} size={40} mood="calm" />
+      </div>
+
+      {!activeQuadrant ? (
+        <div style={{ flex:1, overflowY:"auto", padding:"0 24px", paddingBottom:100 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+            {QUADRANTS.map(q=>(
+              <button key={q.id} className="ember-btn" onClick={()=>setActiveQuadrant(q.id)}
+                style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:18, padding:20, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", gap:10, minHeight:140, transition:"all 0.2s" }}>
+                <div style={{ fontSize:36 }}>{q.icon}</div>
+                <div style={{ fontFamily:"'Lora',serif", fontSize:14, color:t.text }}>{q.name}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted }}>{q.desc}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.accent, marginTop:"auto" }}>{quadrantCounts[q.id]} items</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <div style={{ padding:"0 24px 14px" }}>
+            <button className="ember-btn" onClick={()=>setActiveQuadrant(null)} style={{ background:`${t.accent}15`, border:`1px solid ${t.accent}30`, borderRadius:12, padding:"9px 14px", display:"flex", alignItems:"center", gap:6 }}>
+              <span style={{ fontSize:12 }}>←</span>
+              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.accent }}>All Quadrants</span>
+            </button>
+          </div>
+          <div style={{ padding:"0 24px 8px" }}>
+            <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text }}>{QUADRANTS.find(q=>q.id===activeQuadrant)?.icon} {QUADRANTS.find(q=>q.id===activeQuadrant)?.name}</div>
+          </div>
+          <div style={{ flex:1, overflowY:"auto", padding:"0 24px", paddingBottom:100 }}>
+            {entries.filter(e=>e.quadrant===activeQuadrant).length === 0 && (
+              <div style={{ textAlign:"center", padding:40 }}>
+                <div style={{ fontSize:40, marginBottom:12 }}>{QUADRANTS.find(q=>q.id===activeQuadrant)?.icon}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted }}>No entries here yet.<br/>Capture a note to add one.</div>
+              </div>
+            )}
+            {entries.filter(e=>e.quadrant===activeQuadrant).map(entry=>{
+              const el = LENSES.find(l=>l.id===entry.lens);
+              return (
+                <div key={entry.id} className="ember-btn" onClick={()=>onEntry(entry)}
+                  style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:16, marginBottom:10, cursor:"pointer", position:"relative", overflow:"hidden", display:"flex", gap:12 }}>
+                  <div style={{ position:"absolute", left:0, top:0, bottom:0, width:3, background:MOOD_COLORS[entry.mood]||t.accent, borderRadius:"3px 0 0 3px" }} />
+                  {entry.photo && (
+                    <img src={entry.photo} style={{ width:60, height:80, borderRadius:8, objectFit:"cover", flexShrink:0 }} alt="entry" />
+                  )}
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                      <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted }}>{entry.day} · {entry.dateShort}</div>
+                      <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                        {entry.released && <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:t.muted, background:`${t.border}88`, borderRadius:6, padding:"1px 6px" }}>🔥 Released</div>}
+                        <span style={{ fontSize:13 }}>{el?.icon}</span>
+                      </div>
+                    </div>
+                    <div style={{ fontFamily:"'Lora',serif", fontSize:13, color:`${t.text}cc`, lineHeight:1.5 }}>{entry.preview}</div>
+                    <div style={{ display:"flex", gap:5, marginTop:8, flexWrap:"wrap" }}>
+                      {entry.tags.map(tag=><Tag key={tag} label={tag} t={t} />)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1492,7 +1737,7 @@ export default function Ember() {
         lens: settings.lens_id,
         pin: settings.pin_hash || "1234"
       });
-      setAppState("capture");
+      setAppState("home");
     } else {
       setAppState("onboarding");
     }
@@ -1522,9 +1767,9 @@ export default function Ember() {
     setConfig(cfg);
     if (user) {
       await saveUserSettings(user.id, cfg);
-      setAppState("capture");
+      setAppState("home");
     } else {
-      setAppState("capture");
+      setAppState("home");
     }
   };
 
@@ -1544,11 +1789,12 @@ export default function Ember() {
 
     const savedEntry = await saveJournalEntry(user.id, entryData);
     if (savedEntry) {
+      const displayDate = savedEntry.written_date || savedEntry.writtenDate || savedEntry.date;
       const formattedEntry = {
         id: savedEntry.id,
-        date: new Date(savedEntry.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-        dateShort: new Date(savedEntry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        day: savedEntry.date === new Date().toISOString().split('T')[0] ? 'Today' : new Date(savedEntry.date).toLocaleDateString('en-US', { weekday: 'long' }),
+        date: new Date(displayDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        dateShort: new Date(displayDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        day: displayDate === new Date().toISOString().split('T')[0] ? 'Today' : new Date(displayDate).toLocaleDateString('en-US', { weekday: 'long' }),
         mood: savedEntry.mood,
         lens: savedEntry.lens,
         released: savedEntry.released,
@@ -1557,7 +1803,8 @@ export default function Ember() {
         tags: savedEntry.tags || [],
         text: savedEntry.text,
         photo: savedEntry.photo || null,
-        preview: savedEntry.text.substring(0, 50) + '...'
+        preview: savedEntry.text.substring(0, 50) + '...',
+        writtenDate: savedEntry.written_date || savedEntry.writtenDate || null
       };
       setEntries(prev => [formattedEntry, ...prev]);
     }
@@ -1580,14 +1827,12 @@ export default function Ember() {
     setShowCart(false);
   };
 
-  const showNav = ["home","shop","settings"].includes(appState) || navTab==="shop";
-  const mainTab = navTab;
-
-  const goCapture = () => { setNavTab("capture"); setAppState("capture"); };
-  const goJournal = () => { setNavTab("home"); setAppState("home"); };
-  const goDissolve= () => { setNavTab("dissolve"); setAppState("dissolve"); };
-  const goShop    = () => { setNavTab("shop"); setAppState("shop"); };
-  const goSettings= () => { setNavTab("settings"); setAppState("settings"); };
+  const goCapture  = () => { setNavTab("capture"); setAppState("home"); };
+  const goJournal  = () => { setNavTab("home"); setAppState("home"); };
+  const goDissolve = () => { setNavTab("dissolve"); setAppState("dissolve"); };
+  const goQuadrants= () => { setNavTab("quadrants"); setAppState("quadrants"); };
+  const goShop     = () => { setNavTab("shop"); setAppState("shop"); };
+  const goSettings = () => { setNavTab("settings"); setAppState("settings"); };
 
   if (authLoading) {
     return (
@@ -1635,17 +1880,18 @@ export default function Ember() {
         {showCart && <CartDrawer cart={cart} t={t} onClose={()=>setShowCart(false)} onRemove={removeFromCart} onCheckout={handleCheckout} />}
 
         {appState==="onboarding" && <Onboarding onComplete={handleOnboardingComplete} />}
-        {appState==="pin"        && <PinScreen savedPin={config.pin} onUnlock={()=>setAppState("capture")} t={t} />}
-        {appState==="capture"    && <CaptureScreen t={t} activeLens={activeLens} char={char} onDone={goJournal} onSaveEntry={handleSaveEntry} />}
-        {appState==="home"       && <HomeScreen t={t} char={char} activeLens={activeLens} entries={entries} onEntry={e=>{setSelectedEntry(e);setAppState("entry");}} onSettings={goSettings} />}
-        {appState==="dissolve"   && <DissolveScreen t={t} entries={entries} char={char} onBack={goCapture} />}
+        {appState==="pin"        && <PinScreen savedPin={config.pin} onUnlock={()=>setAppState("home")} t={t} />}
+        {appState==="capture"    && <CaptureScreen t={t} activeLens={activeLens} char={char} onDone={goJournal} onSaveEntry={handleSaveEntry} onSettings={goSettings} />}
+        {appState==="home"       && <HomeScreen t={t} char={char} activeLens={activeLens} entries={entries} onEntry={e=>{setSelectedEntry(e);setAppState("entry");}} onSettings={goSettings} onCapture={goCapture} />}
+        {appState==="dissolve"   && <DissolveScreen t={t} entries={entries} char={char} onBack={goJournal} onSettings={goSettings} />}
+        {appState==="quadrants"  && <QuadrantsScreen t={t} entries={entries} char={char} activeLens={activeLens} onEntry={e=>{setSelectedEntry(e);setAppState("entry");}} onSettings={goSettings} />}
         {appState==="entry"      && selectedEntry && <EntryScreen t={t} entry={selectedEntry} activeLens={activeLens} char={char} onBack={goJournal} />}
-        {appState==="shop"       && <ShopScreen t={t} cart={cart} onAddToCart={addToCart} onShowCart={()=>setShowCart(true)} onBack={goCapture} />}
-        {appState==="settings"   && <SettingsScreen t={t} char={char} activeLens={activeLens} theme={config.theme} setTheme={v=>setConfig(c=>({...c,theme:v}))} character={config.character} setCharacter={v=>setConfig(c=>({...c,character:v}))} lens={config.lens} setLens={v=>setConfig(c=>({...c,lens:v}))} onBack={goCapture} onSignOut={handleSignOut} />}
+        {appState==="shop"       && <ShopScreen t={t} cart={cart} onAddToCart={addToCart} onShowCart={()=>setShowCart(true)} onBack={goJournal} onSettings={goSettings} />}
+        {appState==="settings"   && <SettingsScreen t={t} char={char} activeLens={activeLens} theme={config.theme} setTheme={v=>setConfig(c=>({...c,theme:v}))} character={config.character} setCharacter={v=>setConfig(c=>({...c,character:v}))} lens={config.lens} setLens={v=>setConfig(c=>({...c,lens:v}))} onBack={goJournal} onSignOut={handleSignOut} />}
 
-        {/* Bottom nav — shown on main screens */}
-        {["capture","home","dissolve","shop","settings"].includes(appState) && (
-          <BottomNav active={appState} t={t} onCapture={goCapture} onJournal={goJournal} onDissolve={goDissolve} onShop={goShop} onSettings={goSettings} cartCount={cart.length} />
+        {/* Bottom nav — shown on main screens (4 tabs: Journal, Dissolve, Quadrants center, Shop) */}
+        {["home","dissolve","quadrants","shop","capture"].includes(appState) && (
+          <BottomNav active={appState} t={t} onJournal={goJournal} onDissolve={goDissolve} onQuadrants={goQuadrants} onShop={goShop} cartCount={cart.length} />
         )}
       </div>
     </div>

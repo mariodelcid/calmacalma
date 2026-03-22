@@ -163,17 +163,17 @@ function Onboarding({ onComplete }) {
   const stepProgress = step / 4;
 
   return (
-    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, overflow:"hidden", transition:"background 0.6s" }}>
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, overflow:"hidden", transition:"background 0.6s", position:"relative" }}>
       {/* Progress bar */}
-      <div style={{ height:3, background:`${t.border}44`, position:"absolute", top:0, left:0, right:0 }}>
+      <div style={{ height:3, background:`${t.border}44`, position:"absolute", top:0, left:0, right:0, zIndex:5 }}>
         <div style={{ height:"100%", width:`${stepProgress*100}%`, background:t.accent, transition:"width 0.5s", boxShadow:`0 0 8px ${t.accent}` }} />
       </div>
 
       {/* STEP 0 — Welcome */}
       {step===0 && (
-        <div className="fade-in" style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:32, textAlign:"center" }}>
+        <div className="fade-in" style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"60px 32px 32px", textAlign:"center" }}>
           <div style={{ fontSize:72, marginBottom:24, animation:"breathe 3s ease-in-out infinite" }}>🔥</div>
-          <div style={{ fontFamily:"'Lora',serif", fontSize:36, fontWeight:600, color:t.text, lineHeight:1.2, marginBottom:16 }}>Welcome to<br/>Ember</div>
+          <div style={{ fontFamily:"'Lora',serif", fontSize:36, fontWeight:600, color:t.text, lineHeight:1.2, marginBottom:16 }}>Welcome to<br/>Calma Calma</div>
           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:15, color:t.muted, lineHeight:1.7, maxWidth:280, marginBottom:40 }}>
             Write freely on paper. Capture it. Let AI guide you through your chosen lens. Destroy the paper.<br/><br/>
             <em style={{ color:t.accent }}>The paper is gone. The meaning stays.</em>
@@ -575,22 +575,22 @@ function HomeScreen({ t, char, activeLens, entries, onEntry, onSettings, onCaptu
 // CAPTURE (PRIMARY SCREEN)
 // ─────────────────────────────────────────
 function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings }) {
-  const [phase, setPhase] = useState("camera"); // camera | ocr | quadrant | details | saved
+  const [phase, setPhase] = useState("camera"); // camera | ocr | quadrant | ritual | details | saved
   const [photoData, setPhotoData] = useState(null);
   const [selectedQuadrant, setSelectedQuadrant] = useState(null);
+  const [selectedRitual, setSelectedRitual] = useState(null);
   const [typedText, setTypedText] = useState("");
   const [mood, setMood] = useState("reflective");
   const [ocrStatus, setOcrStatus] = useState("idle"); // idle | loading | done | error
   const [ocrText, setOcrText] = useState("");
   const [writtenDate, setWrittenDate] = useState("");
-  const fileInputRef = useRef(null);
 
-  const handlePhotoCapture = (e) => {
-    const file = e.target.files[0];
+  // Process the selected file into a resized base64 image
+  const processFile = (file) => {
     if (!file) return;
-    const img = new Image();
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onload = (ev) => {
+      const img = new window.Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
         const maxW = 1200;
@@ -602,10 +602,9 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
         const resized = canvas.toDataURL("image/jpeg", 0.8);
         setPhotoData(resized);
         setPhase("ocr");
-        // Start OCR via Claude Vision API
         runOcr(resized);
       };
-      img.src = reader.result;
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   };
@@ -637,7 +636,6 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
     .then(r=>r.json())
     .then(data=>{
       const text = data.content?.find(b=>b.type==="text")?.text || "";
-      // Parse out date if present
       const lines = text.split("\n");
       if (lines[0] && lines[0].startsWith("DATE:")) {
         setWrittenDate(lines[0].replace("DATE:","").trim());
@@ -662,8 +660,8 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
       quadrant: selectedQuadrant,
       mood: mood,
       lens: activeLens.id,
-      released: false,
-      ritual: null,
+      released: !!selectedRitual,
+      ritual: selectedRitual ? selectedRitual.id : null,
       tags: [],
       date: new Date().toISOString().split('T')[0],
       writtenDate: writtenDate || null
@@ -671,27 +669,15 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
     setTimeout(onDone, 1400);
   };
 
-  const fileInput = (
-    <input
-      ref={fileInputRef}
-      type="file"
-      accept="image/*"
-      capture="environment"
-      onChange={handlePhotoCapture}
-      style={{ position:"absolute", top:-9999, left:-9999, opacity:0, width:1, height:1 }}
-    />
-  );
-
   return (
-    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, position:"relative" }}>
-      {fileInput}
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:t.gradient, position:"relative", overflow:"hidden" }}>
 
       {/* Settings gear top-left */}
       <div style={{ position:"absolute", top:52, left:20, zIndex:10 }}>
         <button className="ember-btn" onClick={onSettings} style={{ background:t.card, border:`1px solid ${t.border}`, width:36, height:36, borderRadius:"50%", fontSize:15 }}>⚙️</button>
       </div>
 
-      {/* PHASE: Camera */}
+      {/* PHASE: Camera — the <input> is INSIDE a <label> so tapping anywhere on the circle opens camera */}
       {phase==="camera" && (
         <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:32, paddingBottom:100 }}>
           <Companion char={char} t={t} size={64} mood="calm" />
@@ -699,17 +685,25 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginBottom:40, textAlign:"center", maxWidth:280, lineHeight:1.6 }}>
             Write on paper, then photograph it here.<br/>The paper dissolves. The meaning stays.
           </div>
-          <button className="ember-btn" onClick={()=>fileInputRef.current?.click()}
-            style={{ width:88, height:88, borderRadius:"50%", background:t.accent, border:"4px solid #ffffff22", boxShadow:`0 0 40px ${t.accent}55, 0 8px 32px #00000066`, fontSize:36, display:"flex", alignItems:"center", justifyContent:"center" }}>
-            📷
-          </button>
+          {/* Camera button — the <input> fills the circle and is transparent */}
+          <div style={{ width:88, height:88, borderRadius:"50%", background:t.accent, border:"4px solid #ffffff22", boxShadow:`0 0 40px ${t.accent}55, 0 8px 32px #00000066`, display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden" }}>
+            <span style={{ fontSize:36, pointerEvents:"none", zIndex:1 }}>📷</span>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => processFile(e.target.files?.[0])}
+              style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", opacity:0, cursor:"pointer", zIndex:2 }}
+            />
+          </div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginTop:16 }}>Tap to take a photo or choose from gallery</div>
         </div>
       )}
 
       {/* PHASE: OCR — reading the text from image */}
       {phase==="ocr" && (
         <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"90px 24px 20px", overflow:"auto" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Reading your note...</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 1 of 4 · Reading your note...</div>
           <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:16 }}>Text Extraction</div>
 
           {photoData && (
@@ -743,11 +737,11 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
               <div style={{ display:"flex", gap:10 }}>
                 <button className="ember-btn" onClick={()=>setPhase("quadrant")}
                   style={{ flex:1, background:t.accent, color:"#0c0804", fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:14, padding:"14px 0", borderRadius:12 }}>
-                  Save & Continue →
+                  Continue →
                 </button>
                 <button className="ember-btn" onClick={()=>{ setPhase("details"); setSelectedQuadrant("notes"); }}
                   style={{ background:t.card, border:`1px solid ${t.border}`, fontFamily:"'DM Sans',sans-serif", fontSize:12, padding:"14px 16px", borderRadius:12, color:t.muted }}>
-                  Edit
+                  Edit text
                 </button>
               </div>
             </div>
@@ -767,14 +761,14 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
         </div>
       )}
 
-      {/* PHASE: Quadrant */}
+      {/* PHASE: Quadrant — where to save */}
       {phase==="quadrant" && (
         <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"90px 24px 20px", overflow:"auto" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 2 of 3</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 2 of 4</div>
           <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:20 }}>Where does this belong?</div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
             {QUADRANTS.map(q=>(
-              <button key={q.id} className="ember-btn" onClick={()=>{ setSelectedQuadrant(q.id); setPhase("details"); }}
+              <button key={q.id} className="ember-btn" onClick={()=>{ setSelectedQuadrant(q.id); setPhase("ritual"); }}
                 style={{ background:selectedQuadrant===q.id?`${t.accent}22`:t.card, border:`1px solid ${selectedQuadrant===q.id?t.accent:t.border}`, borderRadius:16, padding:18, display:"flex", flexDirection:"column", alignItems:"center", gap:10, cursor:"pointer", transition:"all 0.2s" }}>
                 <div style={{ fontSize:36 }}>{q.icon}</div>
                 <div style={{ fontFamily:"'Lora',serif", fontSize:13, color:t.text }}>{q.name}</div>
@@ -785,15 +779,54 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
         </div>
       )}
 
-      {/* PHASE: Details */}
+      {/* PHASE: Ritual — how was it dissolved */}
+      {phase==="ritual" && (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"90px 24px 20px", overflow:"auto" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 3 of 4</div>
+          <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:8 }}>How was it dissolved?</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:20 }}>Choose the ritual, or skip if not dissolved yet.</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
+            {DESTRUCTION_RITUALS.map(r=>(
+              <button key={r.id} className="ember-btn" onClick={()=>{ setSelectedRitual(r); setPhase("details"); }}
+                style={{ background:selectedRitual?.id===r.id?`${t.accent}22`:t.card, border:`1px solid ${selectedRitual?.id===r.id?t.accent:t.border}`, borderRadius:14, padding:14, display:"flex", alignItems:"center", gap:10, cursor:"pointer", transition:"all 0.2s" }}>
+                <span style={{ fontSize:24 }}>{r.icon}</span>
+                <div style={{ textAlign:"left" }}>
+                  <div style={{ fontFamily:"'Lora',serif", fontSize:12, color:t.text }}>{r.name}</div>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:t.muted }}>{r.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+          <button className="ember-btn" onClick={()=>{ setSelectedRitual(null); setPhase("details"); }}
+            style={{ width:"100%", background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:"12px 0", fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted }}>
+            Skip — not dissolved yet
+          </button>
+        </div>
+      )}
+
+      {/* PHASE: Details — review & save */}
       {phase==="details" && (
         <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"90px 24px 20px", overflow:"auto" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 3 of 3</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 4 of 4</div>
           <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:20 }}>Review & save</div>
 
           {photoData && (
             <img src={photoData} style={{ width:"100%", maxHeight:120, borderRadius:12, marginBottom:16, objectFit:"cover" }} alt="captured" />
           )}
+
+          {/* Summary badges */}
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
+            {selectedQuadrant && (
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.accent, background:`${t.accent}15`, borderRadius:8, padding:"4px 10px" }}>
+                {QUADRANTS.find(q=>q.id===selectedQuadrant)?.icon} {QUADRANTS.find(q=>q.id===selectedQuadrant)?.name}
+              </div>
+            )}
+            {selectedRitual && (
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.accent, background:`${t.accent}15`, borderRadius:8, padding:"4px 10px" }}>
+                {selectedRitual.icon} {selectedRitual.name}
+              </div>
+            )}
+          </div>
 
           {/* Mood selector */}
           <div style={{ marginBottom:18 }}>
@@ -843,7 +876,9 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
           <div className="fade-in" style={{ textAlign:"center" }}>
             <div style={{ fontSize:72, marginBottom:24, animation:"ritual 2.6s ease-in forwards" }}>✅</div>
             <div style={{ fontFamily:"'Lora',serif", fontSize:24, color:t.text, marginBottom:12 }}>Entry Saved!</div>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted }}>Your note is now in your journal.</div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted }}>
+              {selectedRitual ? `${selectedRitual.icon} ${selectedRitual.name}` : "Your note is now in your journal."}
+            </div>
           </div>
         </div>
       )}
@@ -1579,7 +1614,7 @@ function BottomNav({ active, t, onJournal, onDissolve, onQuadrants, onShop, cart
   const tabs = [
     { id:"home",       icon:"📖", label:"Journal",   action:onJournal },
     { id:"dissolve",   icon:"💧", label:"Dissolve",  action:onDissolve },
-    { id:"quadrants",  icon:"🔲", label:"Quadrants", action:onQuadrants, primary:true },
+    { id:"quadrants",  icon:"🔲", label:"Quadrants", action:onQuadrants },
     { id:"shop",       icon:"🛒", label:"Shop",      action:onShop, badge:cartCount },
   ];
   return (
@@ -1855,8 +1890,9 @@ export default function Ember() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        html,body,#root{height:100%;width:100%;overflow:hidden;background:#0c0804;}
-        body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}
+        html,body,#root{height:100%;width:100%;max-width:100vw;overflow:hidden;background:#0c0804;}
+        body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;position:fixed;top:0;left:0;right:0;bottom:0;}
+        input,textarea,button,select{font-family:inherit;}
         .ember-btn{cursor:pointer;border:none;outline:none;transition:transform 0.13s,box-shadow 0.13s;-webkit-tap-highlight-color:transparent;}
         .ember-btn:active:not(:disabled){transform:scale(0.95);}
         .ember-btn:disabled{cursor:default;opacity:0.5;}

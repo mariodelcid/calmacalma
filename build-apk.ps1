@@ -63,24 +63,36 @@ Set-Content -Path "$PROJECT_DIR\android\local.properties" -Value "sdk.dir=$($SDK
 Set-Location $PROJECT_DIR
 Write-Host ""
 Write-Host "Installing dependencies..." -ForegroundColor Yellow
-if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" }
-npm install 2>&1 | Out-Null
+npm install --legacy-peer-deps
+if ($LASTEXITCODE -ne 0) { Write-Host "npm install FAILED!" -ForegroundColor Red; pause; exit 1 }
 Write-Host "Dependencies installed" -ForegroundColor Green
+
+# Clear old build so we get a fresh one
+if (Test-Path "build") { Remove-Item -Recurse -Force "build" }
+Write-Host "Cleared old build cache" -ForegroundColor Gray
 
 # Build web app
 Write-Host "Building web app..." -ForegroundColor Yellow
-npm run build 2>&1 | Out-Null
+$env:NODE_OPTIONS = "--openssl-legacy-provider"
+npm run build
+if ($LASTEXITCODE -ne 0) { Write-Host "Web build FAILED!" -ForegroundColor Red; pause; exit 1 }
 Write-Host "Web app built" -ForegroundColor Green
 
 # Sync to Android
 Write-Host "Syncing to Android..." -ForegroundColor Yellow
-npx cap sync android 2>&1 | Out-Null
+npx cap sync android
+if ($LASTEXITCODE -ne 0) { Write-Host "Capacitor sync FAILED!" -ForegroundColor Red; pause; exit 1 }
 Write-Host "Synced" -ForegroundColor Green
+
+# Clear old APK
+$oldApk = "$PROJECT_DIR\android\app\build\outputs\apk\debug\app-debug.apk"
+if (Test-Path $oldApk) { Remove-Item -Force $oldApk }
 
 # Build APK
 Write-Host ""
 Write-Host "Building APK... (this may take a few minutes the first time)" -ForegroundColor Yellow
 & "$PROJECT_DIR\android\gradlew.bat" -p "$PROJECT_DIR\android" assembleDebug 2>&1 | ForEach-Object {
+    Write-Host $_
     if ($_ -match "BUILD SUCCESSFUL") { Write-Host $_ -ForegroundColor Green }
     elseif ($_ -match "BUILD FAILED") { Write-Host $_ -ForegroundColor Red }
 }

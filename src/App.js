@@ -575,43 +575,80 @@ function HomeScreen({ t, char, activeLens, entries, onEntry, onSettings, onCaptu
 // CAPTURE (PRIMARY SCREEN)
 // ─────────────────────────────────────────
 function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings }) {
-  const [phase, setPhase] = useState("camera"); // camera | ocr | quadrant | ritual | details | saved
+  const [phase, setPhase] = useState("camera"); // camera | quadrant | ritual | details | saved
   const [photoData, setPhotoData] = useState(null);
   const [selectedQuadrant, setSelectedQuadrant] = useState(null);
   const [selectedRitual, setSelectedRitual] = useState(null);
   const [typedText, setTypedText] = useState("");
   const [mood, setMood] = useState("reflective");
-  const [ocrStatus, setOcrStatus] = useState("idle"); // idle | loading | done | error
+  const [ocrStatus, setOcrStatus] = useState("idle");
   const [ocrText, setOcrText] = useState("");
   const [writtenDate, setWrittenDate] = useState("");
+  const [cameraError, setCameraError] = useState("");
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
 
-  // Process the selected file into a resized base64 image
-  const processFile = (file) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new window.Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const maxW = 1200;
-        const scale = Math.min(1, maxW / img.width);
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const resized = canvas.toDataURL("image/jpeg", 0.8);
-        setPhotoData(resized);
-        setPhase("ocr");
-        runOcr(resized);
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
+  // Start the camera viewfinder
+  const startCamera = useCallback(async () => {
+    setCameraError("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 960 } },
+        audio: false
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
+      }
+    } catch(e) {
+      console.error("[Camera]", e);
+      setCameraError("Camera access denied. Please allow camera permission and try again.");
+    }
+  }, []);
+
+  // Stop camera when leaving
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  }, []);
+
+  // Start camera when phase is "camera"
+  useEffect(() => {
+    if (phase === "camera") {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [phase, startCamera, stopCamera]);
+
+  // Capture a frame from the video
+  const captureFrame = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 960;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+    stopCamera();
+    setPhotoData(dataUrl);
+    setPhase("quadrant");
+    try { runOcr(dataUrl); } catch(e) { /* ignore */ }
   };
 
   const runOcr = (imageData) => {
     setOcrStatus("loading");
     const base64 = imageData.split(",")[1];
+    if (!process.env.REACT_APP_ANTHROPIC_API_KEY) {
+      setOcrStatus("done");
+      setOcrText("");
+      return;
+    }
     fetch("https://api.anthropic.com/v1/messages", {
       method:"POST",
       headers:{
@@ -677,26 +714,42 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
         <button className="ember-btn" onClick={onSettings} style={{ background:t.card, border:`1px solid ${t.border}`, width:36, height:36, borderRadius:"50%", fontSize:15 }}>⚙️</button>
       </div>
 
-      {/* PHASE: Camera — the <input> is INSIDE a <label> so tapping anywhere on the circle opens camera */}
+      {/* PHASE: Camera — live viewfinder */}
       {phase==="camera" && (
-        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:32, paddingBottom:100 }}>
-          <Companion char={char} t={t} size={64} mood="calm" />
-          <div style={{ fontFamily:"'Lora',serif", fontSize:26, color:t.text, marginTop:20, marginBottom:8, textAlign:"center" }}>Capture your note</div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, marginBottom:40, textAlign:"center", maxWidth:280, lineHeight:1.6 }}>
-            Write on paper, then photograph it here.<br/>The paper dissolves. The meaning stays.
+        <div style={{ flex:1, display:"flex", flexDirection:"column", position:"relative" }}>
+          {/* Live camera feed */}
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{ width:"100%", flex:1, objectFit:"cover", background:"#000" }}
+          />
+
+          {/* Error message */}
+          {cameraError && (
+            <div style={{ position:"absolute", top:"40%", left:24, right:24, background:t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:20, textAlign:"center" }}>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:14, color:"#fecaca", marginBottom:12 }}>{cameraError}</div>
+              <button className="ember-btn" onClick={startCamera}
+                style={{ background:t.accent, color:"#0c0804", fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, padding:"10px 24px", borderRadius:10 }}>
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Top overlay — title */}
+          <div style={{ position:"absolute", top:0, left:0, right:0, padding:"52px 20px 16px", background:"linear-gradient(to bottom, #000000cc, transparent)" }}>
+            <div style={{ fontFamily:"'Lora',serif", fontSize:18, color:"#fff", textAlign:"center" }}>Point at your note</div>
           </div>
-          {/* Camera button — the <input> fills the circle and is transparent */}
-          <div style={{ width:88, height:88, borderRadius:"50%", background:t.accent, border:"4px solid #ffffff22", boxShadow:`0 0 40px ${t.accent}55, 0 8px 32px #00000066`, display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden" }}>
-            <span style={{ fontSize:36, pointerEvents:"none", zIndex:1 }}>📷</span>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(e) => processFile(e.target.files?.[0])}
-              style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", opacity:0, cursor:"pointer", zIndex:2 }}
-            />
+
+          {/* Bottom overlay — capture button */}
+          <div style={{ position:"absolute", bottom:0, left:0, right:0, padding:"20px 24px 40px", background:"linear-gradient(to top, #000000cc, transparent)", display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
+            <button className="ember-btn" onClick={captureFrame}
+              style={{ width:72, height:72, borderRadius:"50%", background:"#fff", border:"4px solid #ffffff66", boxShadow:"0 0 30px #ffffff33", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <div style={{ width:58, height:58, borderRadius:"50%", border:"3px solid #333" }} />
+            </button>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#fff99" }}>Tap to capture</div>
           </div>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginTop:16 }}>Tap to take a photo or choose from gallery</div>
         </div>
       )}
 
@@ -711,15 +764,21 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
           )}
 
           {ocrStatus==="loading" && (
-            <div style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:20, display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
-              <div style={{ display:"flex", gap:6 }}>
-                {[0,1,2].map(i=>(
-                  <div key={i} style={{ width:8, height:8, borderRadius:"50%", background:t.accent, animation:`pulse 1.2s ${i*0.2}s infinite` }} />
-                ))}
+            <div>
+              <div style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:20, display:"flex", flexDirection:"column", alignItems:"center", gap:12, marginBottom:16 }}>
+                <div style={{ display:"flex", gap:6 }}>
+                  {[0,1,2].map(i=>(
+                    <div key={i} style={{ width:8, height:8, borderRadius:"50%", background:t.accent, animation:`pulse 1.2s ${i*0.2}s infinite` }} />
+                  ))}
+                </div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, fontStyle:"italic" }}>
+                  {char.name} is reading your handwriting...
+                </div>
               </div>
-              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted, fontStyle:"italic" }}>
-                {char.name} is reading your handwriting...
-              </div>
+              <button className="ember-btn" onClick={()=>setPhase("quadrant")}
+                style={{ width:"100%", background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:"12px 0", fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.muted }}>
+                Skip — choose quadrant now
+              </button>
             </div>
           )}
 
@@ -764,7 +823,7 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
       {/* PHASE: Quadrant — where to save */}
       {phase==="quadrant" && (
         <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"90px 24px 20px", overflow:"auto" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 2 of 4</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 1 of 3</div>
           <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:20 }}>Where does this belong?</div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
             {QUADRANTS.map(q=>(
@@ -782,7 +841,7 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
       {/* PHASE: Ritual — how was it dissolved */}
       {phase==="ritual" && (
         <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"90px 24px 20px", overflow:"auto" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 3 of 4</div>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 2 of 3</div>
           <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:8 }}>How was it dissolved?</div>
           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:20 }}>Choose the ritual, or skip if not dissolved yet.</div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
@@ -806,16 +865,16 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
 
       {/* PHASE: Details — review & save */}
       {phase==="details" && (
-        <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"90px 24px 20px", overflow:"auto" }}>
-          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 4 of 4</div>
-          <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:20 }}>Review & save</div>
+        <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"52px 24px 0", overflow:"auto" }}>
+          <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:t.muted, marginBottom:6 }}>Step 3 of 3</div>
+          <div style={{ fontFamily:"'Lora',serif", fontSize:20, color:t.text, marginBottom:16 }}>Review & save</div>
 
           {photoData && (
-            <img src={photoData} style={{ width:"100%", maxHeight:120, borderRadius:12, marginBottom:16, objectFit:"cover" }} alt="captured" />
+            <img src={photoData} style={{ width:"100%", maxHeight:100, borderRadius:12, marginBottom:12, objectFit:"cover" }} alt="captured" />
           )}
 
           {/* Summary badges */}
-          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:12 }}>
             {selectedQuadrant && (
               <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:t.accent, background:`${t.accent}15`, borderRadius:8, padding:"4px 10px" }}>
                 {QUADRANTS.find(q=>q.id===selectedQuadrant)?.icon} {QUADRANTS.find(q=>q.id===selectedQuadrant)?.name}
@@ -829,42 +888,32 @@ function CaptureScreen({ t, activeLens, char, onDone, onSaveEntry, onSettings })
           </div>
 
           {/* Mood selector */}
-          <div style={{ marginBottom:18 }}>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:8 }}>Mood</div>
-            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+          <div style={{ marginBottom:12 }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:6 }}>Mood</div>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
               {["reflective","grateful","frustrated","heavy","calm"].map(m=>(
                 <button key={m} className="ember-btn" onClick={()=>setMood(m)}
-                  style={{ background:mood===m?MOOD_COLORS[m]:t.card, border:`1px solid ${mood===m?MOOD_COLORS[m]:t.border}`, borderRadius:20, padding:"6px 12px", fontFamily:"'DM Sans',sans-serif", fontSize:11, color:mood===m?"#fff":t.text, cursor:"pointer", transition:"all 0.2s" }}>
+                  style={{ background:mood===m?MOOD_COLORS[m]:t.card, border:`1px solid ${mood===m?MOOD_COLORS[m]:t.border}`, borderRadius:20, padding:"5px 10px", fontFamily:"'DM Sans',sans-serif", fontSize:11, color:mood===m?"#fff":t.text, cursor:"pointer", transition:"all 0.2s" }}>
                   {m}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Written date override */}
-          <div style={{ marginBottom:18 }}>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:8 }}>Written date (optional — overrides today)</div>
-            <input
-              type="date"
-              value={writtenDate}
-              onChange={(e)=>setWrittenDate(e.target.value)}
-              style={{ width:"100%", padding:"8px 12px", background:t.card, border:`1px solid ${t.border}`, borderRadius:10, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.text }}
-            />
-          </div>
-
           {/* Transcription textarea */}
-          <div style={{ marginBottom:20 }}>
-            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:8 }}>Transcription {ocrText ? "(auto-extracted, edit if needed)" : "(optional)"}</div>
+          <div style={{ marginBottom:12 }}>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:t.muted, marginBottom:6 }}>Transcription {ocrText ? "(auto-extracted, edit if needed)" : "(optional)"}</div>
             <textarea
               value={typedText}
               onChange={(e)=>setTypedText(e.target.value)}
               placeholder="Type or review the handwritten text..."
-              style={{ width:"100%", minHeight:100, background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:12, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.text, resize:"none" }}
+              style={{ width:"100%", minHeight:70, background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:12, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:t.text, resize:"none" }}
             />
           </div>
 
+          {/* SAVE BUTTON — always visible */}
           <button className="ember-btn" onClick={handleSave}
-            style={{ background:t.accent, color:"#0c0804", fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:14, padding:"14px 0", borderRadius:12, width:"100%", marginTop:"auto" }}>
+            style={{ background:t.accent, color:"#0c0804", fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:16, padding:"16px 0", borderRadius:12, width:"100%", marginBottom:100, flexShrink:0 }}>
             Save Entry
           </button>
         </div>
@@ -1763,6 +1812,35 @@ export default function Ember() {
     };
   }, []);
 
+  // Push history state on navigation so Android back button works within the app
+  const prevAppState = useRef(appState);
+  useEffect(() => {
+    if (appState !== prevAppState.current) {
+      window.history.pushState({ appState }, "");
+      prevAppState.current = appState;
+    }
+  }, [appState]);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      // Android back button triggers popstate — navigate within app instead of exiting
+      if (appState === "home") {
+        // Already home — push state back so next press doesn't exit
+        window.history.pushState({ appState: "home" }, "");
+        return;
+      }
+      // From sub-screens, go back to home
+      if (["capture","entry","settings","dissolve","quadrants","shop"].includes(appState)) {
+        setAppState("home");
+        setNavTab("home");
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    // Push initial state so there's always history to pop
+    window.history.pushState({ appState: "home" }, "");
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [appState]);
+
   const loadUserData = async (userId) => {
     const settings = await getUserSettings(userId);
     if (settings) {
@@ -1862,7 +1940,7 @@ export default function Ember() {
     setShowCart(false);
   };
 
-  const goCapture  = () => { setNavTab("capture"); setAppState("home"); };
+  const goCapture  = () => { setNavTab("capture"); setAppState("capture"); };
   const goJournal  = () => { setNavTab("home"); setAppState("home"); };
   const goDissolve = () => { setNavTab("dissolve"); setAppState("dissolve"); };
   const goQuadrants= () => { setNavTab("quadrants"); setAppState("quadrants"); };

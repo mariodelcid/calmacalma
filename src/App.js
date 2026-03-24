@@ -173,7 +173,7 @@ function Onboarding({ onComplete }) {
       {step===0 && (
         <div className="fade-in" style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"60px 32px 32px", textAlign:"center" }}>
           <div style={{ fontSize:72, marginBottom:24, animation:"breathe 3s ease-in-out infinite" }}>🔥</div>
-          <div style={{ fontFamily:"'Lora',serif", fontSize:36, fontWeight:600, color:t.text, lineHeight:1.2, marginBottom:16 }}>Welcome to<br/>Calma Calma</div>
+          <div style={{ fontFamily:"'Lora',serif", fontSize:36, fontWeight:600, color:t.text, lineHeight:1.2, marginBottom:16 }}>Welcome to<br/>Ember</div>
           <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:15, color:t.muted, lineHeight:1.7, maxWidth:280, marginBottom:40 }}>
             Write freely on paper. Capture it. Let AI guide you through your chosen lens. Destroy the paper.<br/><br/>
             <em style={{ color:t.accent }}>The paper is gone. The meaning stays.</em>
@@ -1222,7 +1222,7 @@ function SettingsScreen({ t, char, activeLens, theme, setTheme, character, setCh
 const SHOP_PRODUCTS = [
   {
     id:"notebook", category:"hardware", badge:"📓 Essential",
-    name:"Calma Calma Notebook", emoji:"📓",
+    name:"Ember Notebook", emoji:"📓",
     tagline:"Your sacred writing space.",
     desc:"Premium hardcover journal with lined dissolving paper pages. 120 pages of PVA-based dissolving paper bound in a vegan leather cover. Write, capture, dissolve.",
     price:34.99, comparePrice:null,
@@ -1234,7 +1234,7 @@ const SHOP_PRODUCTS = [
     id:"refills", category:"consumable", badge:"🔄 Refills",
     name:"Refillable Paper — 60 Sheets", emoji:"📝",
     tagline:"Cold-water dissolving. Writes like normal paper.",
-    desc:"Refill pack for your Calma Calma notebook or standalone use. PVA-based, non-toxic, biodegradable. Disappears in under 15 seconds.",
+    desc:"Refill pack for your Ember notebook or standalone use. PVA-based, non-toxic, biodegradable. Disappears in under 15 seconds.",
     price:9.99, comparePrice:14.99,
     variants:[{label:"Standard (60 sheets)"},{label:"Double (120 sheets) — $16.99"}],
     includes:["60 pre-cut dissolving sheets","Resealable kraft pouch"],
@@ -1262,17 +1262,17 @@ const SHOP_PRODUCTS = [
   },
   {
     id:"bundle", category:"bundle", badge:"🔥 Best Value",
-    name:"Calma Calma Complete Kit", emoji:"📦",
+    name:"Ember Complete Kit", emoji:"📦",
     tagline:"Everything you need. One box. One ritual.",
-    desc:"The full Calma Calma experience. Notebook, wand, labeled jar, and refill paper — all in one gift-ready box.",
+    desc:"The full Ember experience. Notebook, wand, labeled jar, and refill paper — all in one gift-ready box.",
     price:89.99, comparePrice:119.96,
     variants:[{label:"Ember Black Edition"},{label:"Sakura Rose Edition"}],
-    includes:["1× Calma Calma Notebook","1× Magic Wand Stirrer","1× Dissolution Jar + Labels","60× Extra dissolving sheets","Gift box"],
+    includes:["1× Ember Notebook","1× Magic Wand Stirrer","1× Dissolution Jar + Labels","60× Extra dissolving sheets","Gift box"],
     recurring:false, url:null,
   },
   {
     id:"sub", category:"subscription", badge:"📱 App",
-    name:"Calma Calma Pro", emoji:"🔥",
+    name:"Ember Pro", emoji:"🔥",
     tagline:"All AI advisor lenses. Unlimited entries.",
     desc:"Unlock every advisor lens including ADHD Coach, Buddhist, Christian, Stoic, Business, and more. Unlimited captures, live AI insights, full theme library, all companion characters.",
     price:5.99, comparePrice:null,

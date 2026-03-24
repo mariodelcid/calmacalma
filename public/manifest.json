@@ -1,16 +1,16 @@
 {
-  "short_name": "Calma",
-  "name": "Calma Calma",
+  "short_name": "Ember",
+  "name": "Ember",
   "description": "Your personal AI-powered journaling companion",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "logo192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png",
+      "src": "logo512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

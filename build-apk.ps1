@@ -1,10 +1,10 @@
 # ============================================
-# Calma Calma - One-click APK Builder
+# Ember - One-click APK Builder
 # Run this once: right-click > Run with PowerShell
 # ============================================
 
 Write-Host ""
-Write-Host "=== CALMA CALMA APK BUILDER ===" -ForegroundColor Cyan
+Write-Host "=== EMBER APK BUILDER ===" -ForegroundColor Cyan
 Write-Host ""
 
 # Set variables

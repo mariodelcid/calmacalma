@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.mariodelcid.calmacalma',
-  appName: 'Calma Calma',
+  appId: 'com.mariodelcid.ember',
+  appName: 'Ember',
   webDir: 'build',
   server: {
     androidScheme: 'https'

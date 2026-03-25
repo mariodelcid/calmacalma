@@ -1796,6 +1796,10 @@ export default function Ember() {
       if (currentUser) {
         loadUserData(currentUser.id);
       }
+    }).catch(err => {
+      console.error("[Auth] getCurrentUser failed:", err);
+      setUser(null);
+      setAuthLoading(false);
     });
 
     const subscription = onAuthStateChange((newUser) => {
